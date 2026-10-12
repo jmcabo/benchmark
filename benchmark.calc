@@ -1,0 +1,174 @@
+#!/usr/bin/calc -d -q -s -f
+/*
+Benchmark for the Calc arbitrary precision command line calculator - by JMC
+
+Install calc:
+        sudo apt-get install apcalc
+Run:
+        ./benchmark.calc 30450
+or:
+        calc -dqf benchmark.calc -s 30450
+
+
+Remarks:
+    -This excellent calculator started life in 1984 and is still being mantained and developed to this day (2018).
+     Although for some reason Ubuntu doesn't include the latest version, instead one from four years ago.
+     URLs:
+            "Calc - C-style arbitrary precision calculator"
+            http://www.isthe.com/chongo/tech/comp/calc/
+
+            "Calc in GitHub"
+            https://github.com/lcn2/calc
+
+    -It has arbitrary precision, meaning that it can evaluate for instance "2^1024" and print its 309 digits.
+
+    -The programming syntax is similar to that of the bc calculator, but obviously very extended. It is
+     C-style in some ways.
+
+    -Unlike the standard command line calculator "bc -l", Calc contains a big number of built in functions.
+     The list is viewable by executing:
+            help builtin
+
+    -CTRL+D can be used to exit the calculator.
+
+    -It prints numbers with a "~" prefix when there are more decimal digits that could be printed
+     (ie: if the number was rounded to print it). It can be disabled by executing:
+            config("tilde", 0)
+     to change the number of digits printed after the decimal point to 40 execute (default is 20):
+            config("display", 40)
+     or just:
+            display(40)
+     To get pi with 40 decimals pass a suitable epsilon to the pi() function:
+            pi(1e-40)
+
+    -Calc will forget config() settings on exit. To save them, put them in a file named:
+            ~/.calcrc/startup
+
+    -The line delimiter ";" is optional and can be omitted most of the time.
+
+    -To reuse the last result, use the "." dot in an expression. It's like an ANS.
+
+    -The only type of program comments I was able to make is using the C-style multiline comments.
+     Double slash "//" didn't work and neither did hash "#", despite showing comments with "#" in example
+     code in the manpage.
+
+    -To convert a number to decimal, write it as 0xabcd or 0777 or 0b1010 and it will be printed as decimal.
+     To convert to hexadecimal, change the output base:
+            base(16)
+     and it will print results in hexadecimal. Same with base(8). Execute base(10) to go back.
+
+    -There is only one type of numeric scalar variable: rationals. See "help type". They are arbitrary
+     precision fractions. The only difference between integers and "floats" is that integers are represented
+     with a denominator of 1.
+     There is no possibility to use a smaller, register size integer type for the benchmark.
+
+    -Calc can be used in the command line to replace bc in shell piped calculations. For example:
+                echo "3 * 2.5" | calc -p
+            ==>         7.5
+     or just:
+                calc "3 * 2.5"
+     the -p option is necessary with echo, otherwise it doesn't quit after printing the result and it would print
+     it with TAB indents.
+     There are also two more things: precision and tildes. This prints a tilde and is limited to 20 digits:
+                echo "1 / 9" | calc -p
+            ==> ~0.11111111111111111111
+     To increase precision and remove the tilde that is printed when the result is approximate, do this:
+                echo "tmp=config('tilde',0); tmp=display(40);" "1 / 9" | calc -p
+            ==> 0.1111111111111111111111111111111111111111
+     or:
+                calc "tmp=config('tilde',0); tmp=display(40); 1/9"
+            ==> 0.1111111111111111111111111111111111111111
+     it removes the tilde and prints up to 40 fractional decimal digits after the dot. Assigning the output
+     of config() and display() to 'tmp' (or any other variable name) is necessary so that calc doesn't
+     print the old config or display value while setting the new one.
+
+    -Calc has double the speed of BC and Genius in this benchmark.
+
+
+Limitations:
+    -Can't specify a shell exit code calling quit(), exit() or abort(). They all end with exit code equal to 0.
+
+    -The runtime() function doesn't give a wall clock time, but instead the time spent running code in the process.
+     For this usage it's very similar. The time() function does give wall clock time, but only gives
+     an integer number of seconds without milliseconds.
+
+    -Calling strscanf() with format "%i" doesn't guarantee that the parsed number is an integer.
+     For instance, it accepts "3.2" and it will convert it to 3.2. It can be forced to int with int(n).
+     Also, it will convert "123abc" to 123 without returning an error.
+
+    -An extra test (reconverted integer != original string) is necessary after parsing the integer
+     argument to exclude strings like "123abc", otherwise calc parses it as 123. Because of this extra
+     test, an integer with a plus sign is not considered valid: "+123".
+
+*/
+
+
+/*
+NAIVE implementation. horribly O(n^2), and WITHOUT using sqrt optimization (on purpose so
+that it takes longer and is easier to benchmark. The 'sysbench' utility, uses the optimization
+but puts the function in a loop and counts 10000 calls).
+Returns how many prime numbers exist between 2 and n:
+*/
+define findPrimes(n) {
+    local i, j;
+    local count = 0;
+
+    /* For each number up to 'n': */
+    for (i=2; i <= n; ++i) {
+        for (j=2; j < i; ++j) {  /* NOT using the sqrt optimization (for easier benchmarking). */
+            /* If i divisible by j, it wasn't a prime number: */
+            if (i % j == 0) {
+                break;
+            }
+        }
+        if (i == j) {
+            /* The previous loop ended without divisors found. It is a prime number. */
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+
+define main() {
+    if (argv() != 2) {
+        print "Quick and dirty single thread CPU benchmark - by JMC";
+        print "Usage: ";
+        print "        Pass an argument up to which prime numbers will be searched with";
+        print "        an inefficient algorithm, useful to compare the single thread performance";
+        print "        of the CPU";
+        print "Example: ";
+        print "        " + argv(0) + " 304500";
+        print "Notes: ";
+        print "        Searching up to 304500 takes almost exactly 10 seconds (9.7s) on an Intel i7 4770K @ 3.5GHz";
+        print "        with benchmark.c compiled without optimizations using GCC, and 8.85s with -O3.";
+        print "        Calc: it takes 832.798s (14m) using Calc 2.12.5.0.";
+        print "              For n=3045 it takes 0.137s. For n=30450 it takes 10.257s.";
+        print "";
+        quit;  /* quit() can't produce a non-zero exit code */
+    }
+
+    local n = 0;
+    if (!strscanf(argv(1), "%i", n) || argv(1) != str(int(n)) || n < 2) {
+        fprintf(files(2), "ERROR: Argument '%s' not valid.\n", argv(1));
+        quit;  /* quit() can't produce a non-zero exit code */
+    }
+    n = int(n);
+
+    local count, startTime, endTime, elapsed;
+    startTime = runtime();
+
+    count = findPrimes(n);
+
+    endTime = runtime();
+    elapsed = endTime - startTime;
+    config("tilde", 0);  /* Don't print a "~" prefix for floats if the result is approximated. */
+    printf("Elapsed: %6.3fs\n", elapsed);
+
+    printf("%d prime numbers were found between 2 and %d\n", count, n);
+}
+
+
+main();
+

@@ -1,0 +1,226 @@
+#!/bin/sh
+# vim: set filetype=conf:
+#
+#Benchmark for the BC command line calculator - by JMC
+#
+#Run:
+#       ./benchmark.bc 30450
+#
+#Note: This is actually a BASH script file that feeds the code to the bc calculator, passing the
+#      command line argument embedded in the code as a variable definition.
+#
+#      The bc calculator doesn't include functions to access the command line arguments. One
+#      could create a .bc file with the following shebang:
+#               #!/usr/bin/bc
+#      but it would have no way of receiving command line arguments.
+#
+#      An alternative would be to use the bc function read() to have the program stop and
+#      ask the user to input a string. But I don't want it to be interactive if possible.
+#
+#
+#Remarks:
+#    -The bc calculator ("basic calculator" or "bench calculator") was created in 1975 as a frontend to "dc".
+#     In 1991, the GNU bc was released as a standalone calculator that didn't depend on dc. The GNU bc
+#     is the version included with Linux.
+#
+#    -This calculator is part of the POSIX standard. That means that it is available in any Linux
+#     or Unix system, and it can also be downloaded for windows (through Cygwin or GnuWin32).
+#
+#    -Scripts can use it to make computations (BASH can only make integer operations, no floats).
+#     Example:
+#           echo "3 * 2.5" | bc -l
+#
+#    -The -l option, enables decimals and a few extra mathematical functions. The default decimals
+#     with -l are 20. They can be changed with the scale=20 special variable.
+#     When I use bc I always start it as "bc -l".
+#     For example to see numbers with only two decimals (accounting style):
+#           scale=2
+#     This in the shell:
+#           echo "scale=2; 1/9" | bc
+#     prints:
+#           .11
+#
+#    -CTRL+D can be used to exit the calculator.
+#
+#    -It has arbitrary precision. That means that one can evaluate '2^1024' and it will print
+#     all of its 309 digits. Although it prints them with a maximum of 70 chars per line breaking the
+#     lines with slashes.
+#     The calc calculator ("apcalc" package) prints '2^1024' better, without interrupting the
+#     digits.
+#
+#    -To get PI with 40 decimals do (starting it with bc -l):
+#           scale=40
+#           4 * a(1)
+#     since it doesn't include pi, it can be calculated using the arctangent of 1 and multiplying by 4.
+#
+#    -To convert a number from decimal to hexadecimal:
+#           obase=16
+#           32767
+#       ==> 7FFF
+#     To convert from hexadecimal to decimal:
+#           ibase=16
+#           7FFF
+#       ==> 32767
+#     The ABCDEF chars in hexadecimal input must be in uppercase.
+#     Using ibase=8 or obase=8 octal conversions are possible. The same with binary.
+#     It can be scripted as:
+#           echo "ibase=16; ABCD" | bc
+#       ==> 43981
+#     Although printf can be used in a BASH shell to do the same:
+#           printf "%d\n" 0xABCD
+#       ==> 43981
+#           printf "%x\n" 43981
+#       ==> abcd
+#
+#    -Due to bc limitations, there are several other command line calculators that appeared later, like:
+#           calc
+#           genius
+#           qalc
+#           wcalc
+#     Wcalc and qalc are not programmable (they don't have a scripting language), though they are very
+#     good calculators. Qalc has very good unit conversions, for example: "1m to in" gives "39.370079 in".
+#     Qalc is also the calculator backend used by KDE Krunner ALT+F2 input box.
+#        Genius started as a calculator included in Gnome in the 90s. The way Genius deals with floats is
+#     not the best: in the Genius Calculator floats are not represented as BCD decimals and they have limited
+#     precision, though the FloatPrecision bits is configurable. Genius can plot graphics though and
+#     has very complete functions.
+#        In the Calc calculator, all numbers are rationals (there is no float subtype), and all are
+#     arbitrary precision. One can create scripts easily using the Calc language (see benchmark.calc).
+#     Calc can print '2^1024' with all its 309 digits out of the box without having to adjust precision
+#     settings. The Calc programming language, like bc, is C-style.
+#     Also, Calc was twice as fast as BC and Genius in this benchmark.
+#
+#
+#Limitations:
+#    -Very few mathematical functions. BC has:
+#           s()      sin
+#           c()      cos
+#           a()      atan
+#           l()      natural logarithm
+#           e()      exp
+#           j()      Bessel function
+#           sqrt()   Square root
+#           length() Number of significant digits
+#           scale()  Get/set precision
+#           read()   Read input from user
+#           print()  Print
+#     and nothing else. It has many operators though, and some programming language statements.
+#     Note that the math library functions (those enabled with -l) spell "scalej" when typed together.
+#     The functions acos, asin, tan, etc. can be derived from those programmatically.
+#     The power operator 'X^n' only accepts an integer exponent.
+#     A power function with non-integer exponents can be implemenetd with e() and l().
+#
+#    -No functions to read command line arguments (ie: argv(), etc.).
+#
+#    -There are no functions to measure time in bc. That is why I measure time in the BASH portion of
+#     the script instead.
+#
+#    -No functions to format a float with fixed decimals and left space padding.
+#
+#    -Can't use uppercase letters in function or variable names.
+#
+#    -The decimal precision "scale" must be set to 0 for the modulus/remainder to work.
+#     See the bc mangpage. This can be verified in bc:
+#           # bc -ql
+#
+#           13 % 10
+#           0
+#
+#           scale=0
+#
+#           13%10
+#           3
+#
+#    -If I do "++variable" in a statement, it prints the value of variable making the code slower,
+#     but fortunately not if I do "variable+=1".
+#
+#    -All variables are global unless declared with "auto" inside a function.
+#
+
+
+#Put calculator code inside BC_CODE shell variable:
+BC_CODE=$(cat <<_EOF_
+
+    /*
+    NAIVE implementation. horribly O(n^2), and WITHOUT using sqrt optimization (on purpose so
+    that it takes longer and is easier to benchmark. The 'sysbench' utility, uses the optimization
+    but puts the function in a loop and counts 10000 calls).
+    Returns how many prime numbers exist between 2 and n:
+    */
+    define findprimes(n) {
+        auto oldscale, count, i, j;
+        oldscale = scale;
+        scale = 0; /* For correct operation of integer remainder. See bc manpage. */
+
+        count = 0;
+
+        /* For each number up to 'n': */
+        for (i=2; i <= n; ++i) {
+            for (j=2; j < i; ++j) {  /* NOT using the sqrt optimization (for easier benchmarking). */
+                /* If i divisible by j, it wasn't a prime number: */
+                if (i % j == 0) {
+                    break;
+                }
+            }
+            if (i == j) {
+                /* The previous loop ended without divisors found. It is a prime number. */
+                count += 1;  /* Can't use ++count since it prints the result each time. */
+            }
+        }
+
+        scale = oldscale; /* Restore scale */
+        return count;
+    }
+
+    n = $@
+    count = findprimes(n);
+    print count, "\n";
+
+_EOF_
+) #End of code
+
+
+#Function in shell script to handle the arguments and execute the BC code:
+main () {
+    if [ $# -ne 1 ]; then
+        echo "Quick and dirty single thread CPU benchmark - by JMC"
+        echo "Usage: "
+        echo "        Pass an argument up to which prime numbers will be searched with"
+        echo "        an inefficient algorithm, useful to compare the single thread performance"
+        echo "        of the CPU"
+        echo "Example: "
+        echo "        $0 304500"
+        echo "Notes: "
+        echo "        Searching up to 304500 takes almost exactly 10 seconds (9.7s) on an Intel i7 4770K @ 3.5GHz"
+        echo "        with benchmark.c compiled without optimizations using GCC, and 8.85s with -O3."
+        echo "        bc: it takes an estimated 1823.913s (30m) using GNU bc 1.06.95."
+        echo "            For n=3045 it takes 0.285s. For n=30450 it takes 21.825s.";
+        echo ""
+        exit 1
+    fi
+
+    n=$1
+    [ "$n" -eq "$n" ] 2>/dev/null
+    isNumeric=$?
+    if [ $isNumeric -ne 0 ] || [ $n -lt 2 ]
+    then
+        #Argument is not numeric, or less than 2.
+        >&2 echo "ERROR: Argument '$1' not valid."
+        exit 1
+    fi
+
+    startTime=`date "+%s.%N"`
+
+    #Execute code in bc:
+    count=$(echo "$BC_CODE" | bc -l)
+
+    endTime=`date "+%s.%N"`
+    elapsed=`echo $endTime - $startTime | bc -l`
+    printf "Elapsed: %6.3fs\n" $elapsed
+
+    echo "$count prime numbers were found between 2 and $n"
+}
+
+
+main "$@"
+
