@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/></head><title>Benchmark</title><body><pre>
+<script type="text/javascript">
+
+//Benchmark in JavaScript by JMC
+//
+//
+//Run (in a browser):
+//    file://path/to/html/benchmark.js.html?n=304500
+//
+//Notes on running it:
+//    -I made this compatible with JavaScript 1.3 onwards, including parseQueryString() and floatToFixed().
+//     Tested with Netscape 4.79 and IE 4.
+//
+//    -Firefox: If the n is large and the script takes too long to compute, see:
+//         "dom.max_script_run_time" (number of seconds or 0 to disable prompt).
+//     in "about:config".
+//
+//    -IE4: The file might need to be served from a webserver, in localhost or wherever, since
+//          the file:// url doesn't always work with a query string (like ?n=3045) in IE4.
+//
+//    -IE4 to IE8: Set this to the number of statements to prevent the timeout message if n is large:
+//         HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Styles\MaxScriptStatements
+//     with a DWORD value of 0xFFFFFFFF, the message is disabled. Default when missing is 5M.
+//
+//    -Netscape 4.79: Something about the status bar animation makes it go 640 times slower.
+//     It means a dramatic difference going from 8 minutes with the status bar disabled, to 83 hours
+//     otherwise. To disable the status bar animation, open the File or Edit or View popup menus
+//     as soon as the benchmark starts, either by clicking on the menu or by hitting ALT in the keyboard.
+//     Also dragging the window with the mouse cursor on the title bar seems to have an
+//     effect for some reason but not as much as having a menu open during the duration of the benchmark,
+//     (that is how I discovered that there was something strange going on: as soon as I dragged the
+//     netscape window the benchmark would complete immediately with n=3045).
+//
+//
+//Notes:
+//    -JavaScript was created by Brendan Eich in 1995 for the Netscape Navigator browser. It was first
+//     released as part of Netscape Navigator version 2.0. It started as a scripting language for
+//     web pages in the browser, but nowadays it is included in other kinds of applications and thanks
+//     to NodeJS can now run standalone and in the backend of servers.
+//       With frameworks like the Electron framework (developed by GitHub), one can write standalone
+//     desktop GUI applications in JavaScript. Electron uses both the Chromium browser and NodeJS.
+//       JavaScript was standardized in 1997 in the ECMA-262 standard, at that point the version was 1.3.
+//     The standard is still evolving and new editions come out every few years. ECMAScript 3rd Edition
+//     came out in 1999 and it was an important milestone. It added regular expressions among other things
+//     and it was the reference edition for 10 years, until the ECMAScript 5th edition came out in 2009.
+//
+//    -All numbers are represented as double precision floats, even integers.
+//     The max and min doubles are:
+//            1.7976931348623157e+308
+//            -1.7976931348623157e+308
+//     The max and min doubles that can work as "safe integers" ('n != n+1' and 'n != n-1') are:
+//            9007199254740991    #2^53 - 1
+//            -9007199254740991   #-2^53 + 1
+//     The number '2^53 + 1 = 9007199254740993' cannot be represented exactly as double.
+//
+//    -Even though all numbers are supposed to be represented as doubles in JavaScript, I suspect that
+//     most modern engines use integers, as in integer CPU registers, when it is safe and within the bounds.
+//     In this 2012 talk, they explain that numbers up to signed 31 bits (not 32bits because of a tag bit)
+//     are represented and handled efficiently in the V8 JavaScript engine:
+//            "Google I/O 2012 - Breaking the JavaScript Speed Limit with V8"
+//            https://www.youtube.com/watch?v=UJPdhx5zTaw&t=15m30s
+//     That, in addition to JIT optimization, is how this benchmark runs at close to C speeds in modern
+//     browsers. It would be impossible to achieve such speed if they used float operations in the
+//     findPrimes() function.
+//
+//
+//Limitations:
+//    -An extra test (reconverted integer != original string) is necessary after parsing the integer
+//     argument to exclude strings like "123.", "123.0" or "12.3e1" (subtracting 0 already returns NaN
+//     for strings like "123abc"). Because of this extra test, an integer with a plus sign
+//     is not considered valid: "+123".
+//       I also check against the maximum number that is the biggest float that doesn't loose
+//     precision in the last digit and that still satisfies 'n != n+1'.
+//       If the check for the max safe integer wasn't there, a check should be added to exclude
+//     exponential notation from input because reconverting to string numbers >= 1e21 in JavaScript
+//     invariably uses exponential notation for those numbers.
+//
+//    -No built-in functions to format a float with fixed decimals and left space padding, so I had to
+//     implement padLeft and floatToFixed (<number>.toFixed() is not available in all JavaScripts).
+//
+
+
+//NAIVE implementation. horribly O(n^2), and WITHOUT using sqrt optimization (on purpose so
+//that it takes longer and is easier to benchmark. The 'sysbench' utility, uses the optimization
+//but puts the function in a loop and counts 10000 calls).
+//Returns how many prime numbers exist between 2 and n:
+function findPrimes(n) {
+    var i, j;
+    var count = 0;
+
+    //For each number up to 'n':
+    for (i=2; i <= n; ++i) {
+        for (j=2; j < i; ++j) {  //NOT using the sqrt optimization (for easier benchmarking).
+            //If i divisible by j, it wasn't a prime number:
+            if (i % j == 0) {
+                break;
+            }
+        }
+        if (i == j) {
+            //The previous loop ended without divisors found. It is a prime number.
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+
+//Parse the current query string the same way that PHP would.
+//Return a name/value object.
+//Example: "?one=1%20&two=2=3& abc &&=no&&&"
+//         ==>  {"one": "1 ", "two": "2=3", "abc_": ""}
+function parseQueryString() {
+    var nameValues = {};
+    var qs = window.location.search;
+    qs = (qs.charAt(0) == "?")? qs.substr(1) : qs;
+    var args = qs.split("&");
+    for (var i=0; i < args.length; ++i) {
+        var part = args[i];
+        var pos = part.indexOf("=");
+        if (pos == -1) {
+            pos = part.length;
+        }
+        var name = part.substr(0, pos);
+        var value = part.substr(pos+1);
+        if (typeof decodeURIComponent === "function") {
+            name = decodeURIComponent(name);
+            value = decodeURIComponent(value);
+        }
+        //Left trim
+        name = name.replace(/^\s+/, "");
+        //Spaces to the right, in the name, are preserved as underscores:
+        //    Note: Must iterate, Look-Ahead not supported in IE5:
+        //          name = name.replace(/\s(?=(\s|$))/g, "_");
+        var nameRep = "";
+        while (name != (nameRep = name.replace(/\s(\s*)$/, "_$1"))) {
+            name = nameRep;
+        }
+        if (name != "") {
+            nameValues[name] = value;
+        }
+    }
+    return nameValues;
+}
+
+
+function padLeft(s, toLength) {
+    while (s.length < toLength) {
+        s = String.fromCharCode(0x20) + s;
+    }
+    return s;
+}
+
+
+//Format a float to string as fixed point with the specified number of decimals - by JMC
+//
+//This is mostly equivalent to toFixed(), compatible with the EcmaScript standard definition of toFixed(),
+//for older browsers (IE5, IE4, Netscape 4.79) and older javascripts (WSH in Win2000 and JS/ASP in IIS 5.0).
+//If toFixed() exists, that is used instead.
+//
+//The fractional digits argument must be between 0 and 100 (same as modern toFixed() implementations).
+//
+//Examples:
+//    floatToFixed(1.234, 0)   -->  "1"
+//    floatToFixed(1.234, 2)   -->  "1.23"
+//    floatToFixed(-1.995, 2)  -->  "-2.00"
+//    floatToFixed(5, 3)       -->  "5.000
+//    floatToFixed(5.3)        -->  "5"
+//    floatToFixed(-0.002, 2)  -->  "-0.00"  (negative zero!, same as EcmaScript standard)
+//    floatToFixed(1e21, 2)    -->  "1e21"   (exponential notation if abs(n) >= 1e21, same as EcmaScript standard)
+//    floatToFixed(NaN, 2)     -->  "NaN"
+//
+//Good algorithms for conversion of floats to string are found in:
+//    "How to Print Floating-Point Numbers Accurately" - 1990 - Guy Steele and Jon White.
+//but those might require an arbitrary precision integer library.
+//There is also a famous, a very long, self contained, C implementation based on that paper in:
+//    "dtoa.c" - http://www.netlib.org/fp/index.html
+//dtoa.c uses its own implementation of arbitrary precision integers, all contained in a single file.
+//Similar algorithms are already used by the language when returning a float in string form (just not
+//with a specific fixed number of decimals).
+//
+//  The algorithm below prints the number to string, and parses the exponent (if the number was big or
+//small enough to be returned with exponential notation with toString()). It applies the exponent and
+//then it adds or removes fractional digits to complete the number of requested decimals (by filling
+//with 0s or truncating and rounding).
+//  This approach is more precise than the approach of trying to extract the digits one by one by
+//shifting and truncating: Since there is no access to the binary representation of the float, and
+//since these floats are base-2, small errors would be accumulated when multiplying by 10 and
+//subtracting the integer part to shift and extract the fractional digits.
+//  So it is better to rely on the algorithm inside toString() for converting to base-10 digits first,
+//like the present algorithm does.
+//
+function floatToFixed(x, decimalPlaces) {
+    if (typeof (1.0).toFixed == "function") {
+        return x.toFixed(decimalPlaces);
+    }
+
+    //Truncate digits argument to integer. If non numeric, NaN or undefined, take it as 0
+    //(as in the toFixed() defined in EcmaScript):
+    decimalPlaces = Math.floor(decimalPlaces);
+    if (isNaN(decimalPlaces)) {
+        decimalPlaces = 0;
+    }
+    //The EcmaScript standard toFixed definition requires supports of the digits argument to be at
+    //least up to 20. Chrome and Firefox's toFixed() supports up to 100 fractional digits.
+    if (decimalPlaces < 0 || decimalPlaces > 100) {
+        //Can't throw a RangeError in old JavaScripts without the "throw" statement.
+        //This will have to do:
+        return "ERROR: decimalPlaces argument must be between 0 and 100";
+    }
+
+    if (isNaN(x) || x == Infinity || x == -Infinity) {
+        return x.toString();
+    }
+
+    //The EcmaScript standard toFixed() function returns toString (exponential notation)
+    //when the magnitude is greater than or equal to 1e21:
+    //This can be commented out to always have fixed point notation (but that wouldn't be standard):
+    if (Math.abs(x) >= 1e21) {
+        return x.toString();
+    }
+
+    //Parse exponent:
+    var str = x.toString();
+    var f = str;
+    var exponent = 0;
+    var expPos = str.indexOf("e");
+    if (expPos != -1) {
+        f = str.substring(0, expPos);
+        exponent = str.substring(expPos + 1, str.length);
+        exponent = exponent - 0;  //Convert to number
+    }
+
+    //Get negative sign and remove it:
+    var isNegative = false;
+    if (f.charAt(0) == "-") {
+        f = f.substring(1);
+        isNegative = true;
+    }
+
+    //Turn ".44" into "0.44" (needed at least for Netscape 4.79)
+    if (f.charAt(0) == ".") {
+        f = "0" + f;
+    }
+
+    //Get decimal point position and remove it:
+    var integerDigits = f.length;
+    var fractionalDigits = 0;
+    var pointPos = f.indexOf(".");
+    if (pointPos != -1) {
+        integerDigits = pointPos;
+        f = f.substring(0, pointPos) + f.substring(pointPos + 1, f.length);
+        fractionalDigits = f.length - integerDigits;
+    }
+
+    //Shift according to exponent:
+    fractionalDigits -= exponent;
+    integerDigits += exponent;
+    if (exponent < 0) {
+        while (integerDigits < 1) {
+            f = "0" + f;
+            integerDigits += 1;
+        }
+    } else if (exponent > 0) {
+        while (fractionalDigits < 0) {
+            f += "0";
+            fractionalDigits += 1;
+        }
+    }
+
+    //Add 0's up to decimalPlaces if we have less than asked for:
+    while (fractionalDigits < decimalPlaces) {
+        f += "0";
+        fractionalDigits += 1;
+    }
+
+    //Remove digits if we have more than asked for:
+    if (fractionalDigits > decimalPlaces) {
+        var firstDigitLeftOff = f.charAt(integerDigits + decimalPlaces);
+        f = f.substring(0, integerDigits + decimalPlaces);
+        fractionalDigits = decimalPlaces;
+
+        //Propagate rounding if the first digit left off is greater than or equal to "5":
+        if (firstDigitLeftOff >= "5") {
+            var digitList = f.split("");
+            var carry = true;
+            var pos = digitList.length - 1;
+            while (carry && pos >= 0) {
+                var newChar = digitList[pos].charCodeAt(0) + 1;
+                if (newChar > 0x39) {
+                    newChar = 0x30;
+                } else {
+                    carry = false;
+                }
+                digitList[pos] = String.fromCharCode(newChar);
+                --pos;
+            }
+            f = digitList.join("");
+            if (carry && pos == -1) {
+                f = "1" + f;
+                integerDigits += 1;
+            }
+        }
+    }
+
+    //Add decimal point:
+    if (decimalPlaces > 0) {
+        f = f.substring(0, integerDigits) + "." + f.substring(integerDigits, f.length);
+    }
+
+    //Add negative sign:
+    if (isNegative) {
+        f = "-" + f;
+    }
+
+    return f;
+}
+
+
+function main() {
+    //Read n from "?n=123"
+    var args = parseQueryString();
+    //Count args (Object.keys(args).length) in a compatible way:
+    var argCount = 0; for (k in args) { ++argCount; }
+    //Name from url, from and including last slash:
+    var programName = window.location.pathname.replace(/^.*[\/\\]/, "/");
+
+    if (argCount != 1 || typeof args.n === "undefined") {
+        document.writeln("Quick and dirty single thread CPU benchmark - by JMC");
+        document.writeln("Usage: ");
+        document.writeln("        Pass an argument up to which prime numbers will be searched with");
+        document.writeln("        an inefficient algorithm, useful to compare the single thread performance");
+        document.writeln("        of the CPU");
+        document.writeln("Example: ");
+        document.writeln("        ", programName, "?n=304500");
+        document.writeln("Notes: ");
+        document.writeln("        Searching up to 304500 takes almost exactly 10 seconds (9.7s) on an Intel i7 4770K @ 3.5GHz");
+        document.writeln("        with benchmark.c compiled without optimizations using GCC, and 8.85s with -O3.");
+        document.writeln("        JavaScript: it takes 9.954s using Chromium 51.0.2704.79.");
+        document.writeln("        JavaScript: it takes 10.085s using Opera 24.0.1558.64 in a 32bit WinXP SP3 VM.");
+        document.writeln("        JavaScript: it takes 10.222s using Chrome 49.0.2623.112 in a 64bit Mac OS X 10.8.3 VM.");
+        document.writeln("        JavaScript: it takes 10.837s using Firefox 48.0.");
+        document.writeln("        JavaScript: it takes 10.895s using Firefox 48.0 in a 32bit WinXP SP3 VM.");
+        document.writeln("        JavaScript: it takes 11.104s using Firefox 47.0.1 in a 64bit Win8.1 VM.");
+        document.writeln("        JavaScript: it takes 11.179s using Chrome 49.0.2623.112 in a 32bit WinXP SP3 VM.");
+        document.writeln("        JavaScript: it takes 11.363s using Firefox 48.0.2 in a 64bit Win7 BareMetal.");
+        document.writeln("        JavaScript: it takes 11.457s using Opera 36.0.2130.80 in a 32bit WinXP SP3 VM.");
+        document.writeln("        JavaScript: it takes 12.154s using Chrome 53.0.2785.89 in a 64bit Win8.1 VM.");
+        document.writeln("        JavaScript: it takes 12.158s using Firefox 40.0 in a 64bit Win8.1 VM.");
+        document.writeln("        JavaScript: it takes 12.914s using Firefox 31.0 in a 64bit Mac OS X 10.8.3 VM.");
+        document.writeln("        JavaScript: it takes 12.948s using Safari 6.0.3.8536.28.10 in a 64bit Mac OS X 10.8.3 VM.");
+        document.writeln("        JavaScript: it takes 13.695s using Palemoon 26.4.0(x64).");
+        document.writeln("        JavaScript: it takes 13.791s using rekonq 2.4.2.");
+        document.writeln("        JavaScript: it takes 13.865s using Firefox 9.0.1 in a 32bit Win2000 SP4 VM.");
+        document.writeln("        JavaScript: it takes 13.882s using rekonq 2.4.2 in an 64bit Arch VM.");
+        document.writeln("        JavaScript: it takes 14.929s using Opera 10.63.3516 in a 32bit Win98 VM.");
+        document.writeln("        JavaScript: it takes 15.361s using Opera 12.11.1661.");
+        document.writeln("        JavaScript: it takes 15.495s using Opera 11.61.1250 in a 32bit WinXP SP3 VM.");
+        document.writeln("        JavaScript: it takes 24.449s using IE 11.0.9600.16438 in a 64bit Win8.1 VM.");
+        document.writeln("        JavaScript: it takes 24.974s using IE 11.0.9600.18204 in a 32bit Win7 VM.");
+        document.writeln("        JavaScript: it takes 25.808s using IE 11.0.9600.18349 in a 64bit Win7 BareMetal.");
+        document.writeln("        JavaScript: it takes 138.243s using Konqueror 4.14.22 in a 64bit Arch VM.");
+        document.writeln("        JavaScript: it takes 139.033s using Konqueror 4.2.2 in a 32bit Ubuntu 9.04 VM.");
+        document.writeln("        JavaScript: it takes 147.835s using Firefox 3.6.11 in a 32bit Ubuntu 9.04 VM.");
+        document.writeln("        JavaScript: it takes 303.417s using IE 8.0.6001.18702 in a 32bit WinXP SP3 VM.");
+        document.writeln("        JavaScript: it takes 411.343s using IE 5.00.3700.1000 in a 32bit Win2000 SP4 VM.");
+        document.writeln("        JavaScript: it takes 428.590s using IE 4.72.3110.4 SP1 in a 32bit Win98 VM.");
+        document.writeln("        JavaScript: it takes 458.290s using Netscape 4.79 in a 32bit Win98 VM (with an open File popup menu to disable status bar animation).");
+        document.writeln("        JavaScript: it takes 508.450s using Firefox 2.0.0.20 in a 32bit Win98 VM.");
+        document.writeln("        JavaScript: it takes an estimated 302082s (83h 55m) using Netscape 4.79 in a 32bit Win98 VM. For benchmark 3045, it takes 48.990s. (with status bar animation)");
+        document.writeln("");
+        return;
+    }
+
+    var n = Math.floor(args.n - 0);
+    var MAX_SAFE_INTEGER = 9007199254740991;  //2^53 - 1. Max double that can act as a safe integer (n != n+1).
+    if (isNaN(n) || Math.abs(n) > MAX_SAFE_INTEGER || args.n != n + "" || n < 2) {
+        document.writeln("ERROR: Argument '", args.n, "' not valid.\n");
+        return;
+    }
+
+    var startTime = new Date().getTime();
+
+    var count = findPrimes(n);
+
+    var endTime = new Date().getTime();
+    var elapsed = (endTime - startTime) / 1000.0;
+    document.writeln("Elapsed: " + padLeft(floatToFixed(elapsed, 3), 6) + "s");  //Padding up to 6 places, and rouding to 3 decimals.
+
+    document.writeln(count + " prime numbers were found between 2 and " + n);
+}
+
+
+main();
+
+</script>
+</pre></body></html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+  <link rel="stylesheet" type="text/css" href="Eratosthenes_files/template.css">
+ <title>The Prime Glossary: Sieve of Eratosthenes</title>
+ <meta name="author" content="Chris K. Caldwell">
+ <link rev="made" href="mailto:caldwell@utm.edu">
+ <link rel="SHORTCUT ICON" href="http://primes.utm.edu/favicon.ico">
+ <meta name="description" content="Welcome to the Prime Glossary: a collection
+   of definitions, information and facts all related to prime
+   numbers.  This pages contains the entry titled 'Sieve of Eratosthenes.'
+   Come explore a new prime term today!">
+ <meta name="keywords" content="Sieve of Eratosthenes, prime, primes, number theory, mathematics,
+      curiosities, trivia, education, dictionary, definition, glossary">
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body bgcolor="#CCFFFF" alink="#000033" background="Eratosthenes_files/2blue.gif" link="#000066" text="#000000" vlink="#0000CC">
+
+<table cellpadding="5" width="100%">
+ <tbody><tr>
+  <td width="40"></td>
+  <td>
+   <table border="2" cellpadding="10">
+    <tbody><tr>
+     <td width="10"></td>
+     <td bgcolor="#FFFFFF"><b><font size="+2">
+        Sieve of Eratosthenes       </font></b><br>
+        (another <a href="http://primes.utm.edu/">Prime Pages</a>' Glossary entries)     </td>
+    </tr>
+   </tbody></table>
+  </td>
+  <td align="center">
+   <a href="http://primes.utm.edu/glossary/home.php"><img src="Eratosthenes_files/ThePG.gif" alt="The Prime Glossary" border="0" height="81" width="295"></a>
+  </td>
+ </tr>
+</tbody></table>
+
+<table cellpadding="2"><tbody><tr valign="TOP"><td width="100">
+<b>Glossary:</b>
+ <ul>
+<li><a href="http://primes.utm.edu/glossary/index.php" class="menu">Index</a></li><li><a href="http://primes.utm.edu/glossary/search.php" class="menu">Search</a></li><li><a href="http://primes.utm.edu/glossary/home.php" class="menu">Home</a><p>
+    </p></li><li><a href="http://primes.utm.edu/glossary/xpage/SierpinskiNumber.html" class="menu">Previous</a>
+    </li><li><a href="http://primes.utm.edu/glossary/xpage/SigmaFunction.html" class="menu">Next</a>
+    </li><li><a href="http://primes.utm.edu/glossary/xpage/Cyclotomy.html" class="menu">Random</a><p>
+</p></li><li><a href="http://primes.utm.edu/glossary/includes/mail.php" class="menu">Mail Editor</a>
+ </li></ul>
+<b>Prime Pages:</b>
+ <ul>
+  <li><a href="http://primes.utm.edu/" class="menu">Home</a>
+  </li><li><a href="http://primes.utm.edu/search/" class="menu">Search</a>
+  </li><li><a href="http://primes.utm.edu/Index.htm" class="menu">Index</a>
+  </li><li><a href="http://primes.utm.edu/notes/faq/" class="menu">FAQ</a>
+ </li></ul>
+
+<b>Top 5000:</b>
+ <ul>
+  <li><a href="http://primes.utm.edu/primes/" class="menu">Primes</a>
+  </li><li><a href="http://primes.utm.edu/bios/" class="menu">Provers</a>
+  </li><li><a href="http://primes.utm.edu/curios/" class="menu">Curios</a>
+ </li></ul>
+
+<img src="Eratosthenes_files/space2.gif" alt="" height="1" width="120">
+</td>
+
+<td>
+The most efficient way to find all of the small <a href="http://primes.utm.edu/glossary/xpage/Prime.html" class="glossary" title="glossary">primes</a>
+(say all those less than 10,000,000) is by using a
+sieve such as <b>the
+Sieve of <a href="http://primes.utm.edu/glossary/xpage/Eratosthenes.html" class="glossary" title="glossary">Eratosthenes</a></b>(ca 240 BC):
+ <blockquote>
+ Make a list of all the integers less than or
+equal to <i>n</i> (and greater than one).  Strike out the
+multiples of all primes less than or equal to
+the square <a href="http://primes.utm.edu/glossary/xpage/Zero_.html" class="glossary" title="glossary">root</a> of <i>n</i>, then the numbers that are left are the primes.
+ </blockquote>
+ For example, to find all the primes less than or equal to
+ 30, first list the numbers from 2 to 30.
+ <blockquote>
+2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+ </blockquote>
+ The first number 2 is prime, so keep it (we will color
+it green) and cross out its multiples (we will color them red), so the red numbers are not prime.
+ <blockquote> <font color="green">2</font> 3 <font color="red">4</font> 5 <font color="red">6</font> 7 <font color="red">8</font> 9 <font color="red">10</font> 11 <font color="red">12</font> 13
+<font color="red">14</font> 15 <font color="red">16</font> 17 <font color="red">18</font> 19 <font color="red">20</font> 21 <font color="red">22</font> 23
+<font color="red">24</font> 25 <font color="red">26</font> 27 <font color="red">28</font> 29 <font color="red">30</font>
+ </blockquote>
+ The first number left (still black) is 3, so it is
+the first odd prime.  Keep it and cross out all of
+its multiples. We know that all multiples less than 9 (i.e. 6) will
+already have been crossed out, so we can start crossing out at 3<sup>2</sup>=9.
+ <blockquote> <font color="green">2</font> <font color="green">3</font> <font color="red">4</font> 5 <font color="red">6</font> 7 <font color="red">8</font> <font color="red">9</font> <font color="red">10</font> 11 <font color="red">12</font> 13 <font color="red">14</font> <font color="red">15</font> <font color="red">16</font> 17 <font color="red">18</font> 19 <font color="red">20</font> <font color="red">21</font> <font color="red">22</font> 23 <font color="red">24</font> 25 <font color="red">26</font>
+<font color="red">27</font> <font color="red">28</font> 29 <font color="red">30</font>
+</blockquote>
+  Now the first number left (still black) is 5, the second
+odd prime.  So keep it also and cross out all of its multiples
+(all multiples less than 5<sup>2</sup>=25 have already been crossed out, and
+in fact 25 is the only multiple not yet crossed out).
+ <blockquote> <font color="green">2</font> <font color="green">3</font> <font color="red">4</font> <font color="green">5</font> <font color="red">6</font> 7 <font color="red">8</font> <font color="red">9</font> <font color="red">10</font> 11 <font color="red">12</font> 13 <font color="red">14</font> <font color="red">15</font> <font color="red">16</font> 17 <font color="red">18</font> 19 <font color="red">20</font>
+<font color="red">21</font> <font color="red">22</font> 23 <font color="red">24</font>
+<font color="red">25</font> <font color="red">26</font> <font color="red">27</font>
+<font color="red">28</font> 29 <font color="red">30</font>
+ </blockquote>
+ The next number left, 7, is larger than the square root of
+30, so there are no multiples of 7 to cross off that haven't already
+been crossed off (14 and 28 by 2, and 21 by 3), and therefore the
+sieve is complete.  Therefore all of the numbers left are primes:
+{2, 3, 5, 7, 11, 13, 17, 19, 23, 29}.  Notice we just
+found these primes without dividing.
+<p>This algorithm can be written in pseudo-code as follows
+ </p><blockquote><pre><code>
+Eratosthenes(<i>n</i>) {
+  <i>a</i>[1] := 0
+  for <i>i</i> := 2 to <i>n</i> do <i>a</i>[<i>i</i>] := 1
+  <i>p</i> := 2
+  while <i>p</i><sup>2</sup>  <u>&lt;</u>  <i>n</i> do {
+    <i>j</i> := <i>p</i><sup>2</sup>
+    while (<i>j</i>  <u>&lt;</u>  <i>n</i>) do {
+      <i>a</i>[<i>j</i>] := 0
+      <i>j</i> := <i>j</i>+<i>p</i>
+    }
+    repeat <i>p</i> := <i>p</i>+1 until <i>a</i>[<i>p</i>] = 1
+  }
+  return(<i>a</i>)
+}
+</code></pre></blockquote>
+ <p>This method is so fast that there is no reason to store a
+large list of primes on a computer--an efficient implementation
+can find them faster than a computer can read from a disk.
+In fact the problem with the algorithm as presented above is
+not really speed (it uses <a href="http://primes.utm.edu/glossary/xpage/BigOh.html" class="glossary" title="glossary">O</a>(<i>n</i>(<a href="http://primes.utm.edu/glossary/xpage/Log.html" class="glossary" title="glossary">log</a> <i>n</i>)log log <i>n</i>)
+bit operations), but rather space (it is O(<i>n</i>)).
+So for large <i>n</i> we usually use a segmented sieve.
+However, both the time and space theoretically can be improved; for example,
+Pritchard's "linear segmented wheel sieve" uses O(<i>n</i> log <i>n</i>) bit
+operations and O(sqrt(<i>n</i>)/log log <i>n</i>) space.</p><p>
+</p><p><b>See Also:</b>  <a href="http://primes.utm.edu/glossary/xpage/TrialDivision.html" class="glossary">TrialDivision</a></p><p><b>Related pages</b> (outside of this work)</p><ul><li> <a href="http://primes.utm.edu/links/programs/sieves/Eratosthenes/">Programs and pseudocode</a> for The Sieve of Eratosthenes</li></ul><p><b>References:</b></p><blockquote><dl>
+<dt>BH77</dt><dd class="BibItem"> <b>C. Bayes</b> and <b>R. Hudson</b>, "The segmented sieve of Eratosthenes and primes in arithmetic progression," <i>Nordisk Tidskr. Informationsbehandling (BIT)</i>, <b>17</b>:2 (1977) 121--127.&nbsp; <b><a href="http://www.ams.org/mathscinet-getitem?mr=56:5405">MR 56:5405</a></b>
+</dd><dt>Bressoud89</dt><dd class="BibItem"> <b>D. M. Bressoud</b>, <i>Factorizations and primality testing</i>, Springer-Verlag, New York, NY, 1989.&nbsp; ISBN 0387970401. <b><a href="http://www.ams.org/mathscinet-getitem?mr=91e:11150">MR 91e:11150</a></b> [pseudocode implementation on page 19] <font color="#000033">[QA161.F3B73]</font>
+</dd><dt>Pritchard87</dt><dd class="BibItem"> <b>P. Pritchard</b>, "Linear prime-number sieves: a family tree," <i>Sci. Comput. Programming</i>, <b>9</b>:1 (1987) 17--35.&nbsp; <b><a href="http://www.ams.org/mathscinet-getitem?mr=88j:11087">MR 88j:11087</a></b> [Comparison of various sieves] <font color="#000033">[A comparison of recent sieves such as the sieve of Eratosthenes.]</font>
+</dd><dt>Riesel94</dt><dd class="BibItem"> <b>H. Riesel</b>, <i>Prime numbers and computer methods for factorization</i>, Progress in Mathematics Vol, 126, Birkhäuser Boston, Boston, MA, 1994.&nbsp; ISBN 0-8176-3743-5. <b><a href="http://www.ams.org/mathscinet-getitem?mr=95h:11142">MR 95h:11142</a></b> [a PASCAL implementation on page 6] <font color="#000033">[An
+ excellent reference for those who want to start to program some of
+these algorithms. Code is provided in Pascal. Previous edition was vol.
+57, 1985.]</font></dd></dl></blockquote>
+
+
+<br><br>
+<hr class="index">
+<div style="FONT-SIZE: smaller"><a href="http://www.utm.edu/%7Ecaldwell/" class="none">Chris K. Caldwell</a> © 1999-2016 (<a href="http://primes.utm.edu/glossary/includes/copyright.php">all rights reserved</a>)
+</div>
+
+</td>
+</tr></tbody></table>
+
+
+
+</body></html>

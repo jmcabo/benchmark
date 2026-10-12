@@ -1,0 +1,95 @@
+Run:
+
+     for a in `seq 1 8`; do echo $a; (date +%T.%N; ./benchmark 304500; date +%T.%N) &  done
+
+To have it run 8 times, displaying the date with nanoseconds before and after
+each one completes.
+So, to take the total time of the N processes, subtract the first date from the
+last date printed.
+
+The thing about this benchmark, is that it's PURE CPU.
+It doesn't hit the RAM, it has very small cache utilization and won't invalidate it.
+It doesn't use I/O or graphics or none of that.
+
+This means that it doesn't provide much opportunities for HyperThreading to kick in,
+and if two processes get scheduled to the same core, they will run at half speed.
+Because it's pure CPU and there are no bottlenecks.
+   And hyperthreading only works by giving the shared execution unit to the other
+thread in the same core, but only when the other thread was waiting on RAM,
+invalidated cache, branch mis-prediction, or I/O.
+   Since there are no pauses or distractions for each of the benchmark processes,
+they will compete rather than share the core's execution unit when two of the
+processes get scheduled to the same core's hyperthreads.
+
+The beauty of this is that one can clearly see how core scheduling works.
+
+Illustration:
+------------
+
+1)
+In this i7 4770K, running a single instance of:
+        time ./benchmark 304500
+takes 9 seconds.
+
+2)
+Running 4 simultaneous processes, sometimes takes 16 seconds in total, and sometimes
+it takes 9 seconds. Why?
+The answer can be seen graphicaly.
+It depends on how the kernel assigns logical cores to each process:
+
+3)
+If all 4 processes end up in different physical cores, then it takes 9 seconds:
+
+    1  [                         0%]      5  [|||||||||||||||||||||||100%]
+    2  [|||||||||||||||||||||||100%]      6  [                         0%]
+    3  [                         0%]      7  [|||||||||||||||||||||||100%]
+    4  [                         0%]      8  [|||||||||||||||||||||||100%]
+
+    (cores on a horizontal line actually are logical cores that belong to the same
+     physical core, in the 'htop' graphic, for this i7 4770K. This can be verified in
+     /proc/cpuinfo with the 'core id'. Logical cores 1 and 5 are the two
+     threads of the first core)
+
+4)
+If only two processes share one core, and the other two are in different cores,
+it takes 16 seconds for the first two, and only 9 seconds for the other
+ones:
+
+    1  [                         0%]      5  [                       100%]
+    2  [|||||||||||||||||||||||100%]      6  [|||||||||||||||||||||||100%]
+    3  [                         0%]      7  [|||||||||||||||||||||||100%]
+    4  [                         0%]      8  [|||||||||||||||||||||||100%]
+
+5)
+If they are all sharing cores (two and two), they all take 16 seconds to complete (worst case):
+
+    1  [                         0%]      5  [                       100%]
+    2  [|||||||||||||||||||||||100%]      6  [|||||||||||||||||||||||100%]
+    3  [|||||||||||||||||||||||100%]      7  [|||||||||||||||||||||||100%]
+    4  [                         0%]      8  [                         0%]
+
+
+
+All this illustrates how HyperThreading works (or rather doesn't).
+Logical cores share a single execution unit.
+If these processes were not PURE CPU, and instead accessed I/O or RAM, then the
+interruption of one process while waiting for I/O would be used by hyperthreading
+as a time to start running the other thread that was scheduled to that core.
+  But these are pure CPU bound processes, that never let go of the execution
+units, and when scheduled to the same core, they compete for it, instead of
+sharing it.
+
+
+Final notes:
+-----------
+For some workloads, it might be good to disable hyper threading in the BIOS.
+But those workloads would have to be at most 4 threads or processes (or N for N
+real cores), and purely CPU bound.
+    For more running threads, it would be best to leave HyperThreading enabled
+since it can balance better and squeeze the Execution Unit's time the most,
+especially since this benchmark is a very artificial workload and most
+real workloads will not be completely PURE CPU.
+
+
+
+

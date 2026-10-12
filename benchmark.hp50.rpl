@@ -1,0 +1,676 @@
+@Benchmark for HP50g Programmable Calculator in User RPL - by JMC
+@
+@Example:
+@        +----------------------+                   +----------------------+
+@        |7:                    |                   |7:                    |
+@        |6:                    |                   |6:                    |
+@        |5:                    |                   |5:                    |
+@        |4:                    |                   |4:                    |
+@        |3:                    |                   |3:                    |
+@        |2:                    |                   |2:      Elapsed:52.645|
+@        |1:                 304|  -> benchmark ->  |1:                 62.|
+@        +----------------------+                   +----------------------+
+@
+@The 62 there in the result example is the amount of prime numbers between 2 and 304.
+@The "Elapsed" value is in seconds.
+@
+@Upload to a real HP50g calculator:
+@
+@   Either type it by hand (there is a short version easy to type in this file) or:
+@
+@       1. Copy the benchmark from the "%%HP: T(3)A(R)F(.);" header line to the last \>>
+@          (where it says CUT HERE). Paste it to a new file.
+@          The header must be the first line, without spaces before it.
+@       2. Upload that file to a calculator using Kermit protocol, as you do with
+@          any other file that you upload to the calculator, with the corresponding
+@          cable and software. Store it to a variable. Run by selecting that variable.
+@
+@Upload to the Emu48+ emulator:
+@       1. Select and copy the program in this file from the "%%HP: T(3)A(R)F(.);" header line to the
+@          last \>> (where it says CUT HERE). The header must be the first line, without spaces before it.
+@       2. Paste it to the emulator with "ALT+E P" or menu "Edit -> Paste Stack".
+@          The program shows in the stack as a string object.
+@       3. Convert it to a program object using the ASCIIBIN tool that comes with Emu48.
+@          See below for details. The ASCIIBIN tool runs from the calculator. I don't know
+@          of a tool that runs in the PC to convert to binary program object.
+@       4. Type 'BENCHMARK' or any other name and hit STO, to store it to a variable.
+@       5. Done.
+@
+@Run:
+@       Type a number up to which to search prime numbers (ie: 30) and hit the variable name
+@       with the uploaded program in the soft labels menu (ie: "BENCH").
+@
+@       To interrupt the program, hit the ON key in rapid succession.
+@
+@How to put the ASCIIBIN tool in Emu48:
+@
+@       1. The tool is found in the path:
+@             "C:\Program Files (x86)\HP-Emulators\Emu48\Emu48asc\ASCIIBIN.49"
+@          For Linux, when running Emu48 under WINE, it's in the path:
+@              "~/.wine/drive_c/Program Files (x86)/HP-Emulators/Emu48/Emu48asc/ASCIIBIN.49"
+@          If you don't have it there, reinstall Emu48 but this time select all Tools
+@          in the custom installation wizard.
+@       2. Drag and drop the file "ASCIIBIN.49" to a running Emu48+ calculator.
+@          A program object shows up on the stack.
+@          (Alternatively, use the menu "Edit -> Load Object..." and select the "ASCIIBIN.49" file).
+@       3. Type 'ASCIIBIN' or any name and hit STO.
+@       4. Done! This program can convert program objects to strings and viceversa.
+@
+@Differences from the HP48GX benchmark:
+@
+@   -The programs in this file specify the "." dot after numeric constants to force them to be
+@    represented as REALs instead of the slower ZINTs. The HP48 series calculators didn't have
+@    arbitrary precision integers so they don't need the dot to differentiate, but they can accept it.
+@    Example: "2." vs "2"
+@      Specifying the dot may not be necessary if the calculator is in EXACT mode instead of APPROX
+@    mode. In APPROX mode, all numbers input in the calculator are REALs, and the program gets stored
+@    with REAL numeric constants.
+@
+@   -An I\->R command is used at the beginning of the programs to force the argument to be a REAL
+@    number. This command doesn't exist in HP48GX. If it is a ZINT, it converts it to REAL.
+@    If it is a REAL already, it returns the same number. This makes the programs a bit faster.
+@
+@Limitations and remarks for the HP50g:
+@
+@   -See "benchmark.hp48.rpl" for more notes and limitations of the HP48GX calculator, some of them
+@    also apply to the HP50g.
+@
+@   -The HP49 series is composed of the HP48Gii, HP49G, HP49G+ and HP50g. Programs for HP49 series
+@    are binary compatible among all those calculators. Older programs written for the HP48 series
+@    are source compatible.
+@
+@   -I recently bought a used HP50g that was in almost brand new condition. HP doesn't manufacture
+@    it anymore. It is a shame since it represents the culmination of decades of improvements in
+@    RPN calculators. The current top of the line HP calculator is the HP Prime, which broke
+@    compatibility, and while it has an RPN mode, it is just a limited mode, and it is not programmed
+@    in a stack based language, like RPL was, instead the HP Prime is programmed in a Pascal-like language.
+@
+@   -I'm using Emu48+ 1.57 in Authentic Speed mode for tests (File -> Settings -> Authentic Calculator
+@    Speed), and my real HP50g for confirmation. The plus version (Emu48+ vs Emu48) can emulate
+@    the whole HP49 series, including the HP49G+ and HP50g.
+@
+@   -Emu48+ can be used under Linux through the WINE compatibility layer. There are glitches
+@    with the screen, at least using WINE 2.0.2, that are solved when selecting
+@    "File -> Settings -> Enable Virtual LCD Delay" in Emu48+'s settings menu. Copy/Paste works,
+@    Drag and Drop of object files works, and the measured speeds are the same as in Windows.
+@
+@   -My real calculator is about 24% slower than Emu48+ in Authentic Speed mode for the UserRPL benchmark.
+@    I'm not sure why in the case of the HP50g, since they are all clocked at 75MHz. I think that
+@    maybe it runs the Saturn CPU emulation without rate control, so some operations are faster
+@    than others. Emu48+ on the other hand emulates the Saturn with a rate controlled by how much
+@    cycles opcodes took in the real Saturn (only in Authentic Calculator Speed mode).
+@       With the System RPL benchmark the story is different than with the User RPL benchmark, and
+@    the real HP50g is faster than Emu48+ there.
+@
+@   -The HP50g CPU is a Samsung ARM CPU running at 75MHz (Samsung S3C2410A, ARM920T core), emulating
+@    the legacy Saturn CPU for maximum compatibility. Not only compatibility with user programs and
+@    libraries, but also with the calculator routines for its over 2300 built-in functions (arithmetic,
+@    trigonometric functions, matrix/vector operations, symbolic integration, derivation, finance, etc.).
+@    This was a way to make a faster calculator without having to re-write all of its routines. Those
+@    routines were all written in System RPL and assembly. After all, a calculator is mostly software.
+@       In 2011, HP released the "HP 39gII" calculator for which they re-made all its calculator
+@    routines in portable C language. That allowed HP to later create the HP Prime, launched in 2013,
+@    using that software foundation instead of the RPL routines that were incrementally improved
+@    on for 29 years (beginning with the HP28C). Breaking free from System RPL allowed them to use a
+@    faster processor that didn't need to emulate a Saturn. But the downside is that compatibility
+@    with user programs was lost.
+@       This makes me somewhat sad. While I understand that they wanted to start over, they are
+@    not providing the same advanced capabilities with the HP Prime that the HP50g has. The HP50g
+@    was the culmination of decades of incremental improvements in RPN calculators. I decided
+@    that in case my HP48GX broke, I needed an HP50g. So I bought an HP50g while I still could in 2018.
+@    I also downloaded the mirror of hpcalc.org, which is an online HP48 and HP49 series software
+@    archive. The host of hpcalc.org allows anyone to download the whole archive for free with a P2P
+@    link that he provides under the section: "https://www.hpcalc.org -> General Information -> Internet".
+@    I want to forever have the possibility to use an RPN calculator for my computing needs.
+@
+@   -The display is 22 characters wide and has 7 levels of stack on screen (with the default font) .
+@    The stack labels occupy 3 characters so that makes objects on the stack
+@    at most 19 chars wide. And the DOERR command can display only a few lines in a box.
+@    Display resolution is 131x80. A bit taller (25%) than the HP48GX's 131x64 pixels.
+@    I'm not including the usage banner in the program because of these screen limitations.
+@
+@   -The programming language is based on Reverse Polish Notation (RPN). It is very
+@    practical for doing computations, but it may look weird for people not used to it.
+@    It is stack based. For instance, a subtraction is expressed in reverse, with the
+@    operation at the end of the operands, like this: "100 1 -" instead of "100 - 1"
+@    The "-" takes its two operands from the stack. If I used "SWAP", the two levels
+@    of the stack get interchanged: "100 1 SWAP -" yields "1 - 100".
+@    The most obvious advantage is that with RPN you don't need parentheses.
+@
+@   -Variables are all variant. The same variable can hold a string, a number, a program object, etc.
+@    in different points in time.
+@
+@   -One can define local variables available only to the program block below the variables declaration.
+@
+@   -Numeric values are either REAL, ZINTs, or Binary Integers. The ZINTs are new to the HP49 series.
+@    ZINTs have arbitrary precision. ZINTs are slower but are only limited by memory. For instance
+@    one can calculate 2 ^ 1000 and it will show all the digits without loss of precision.
+@       Binary Integers values are up to 64bit unsigned integers depending on the WORD SIZE system flag.
+@    Binary Integers objects take up to 26 nibbles of storage, 13 bytes: 5 nibbles for the prolog,
+@    5 for the length and up to 16 for the hex digits. They are represented with a hash
+@    sign: "#16d", "#Fh", etc.
+@       REAL values (the default) are floating point, consisting of 12 BCD digits, with
+@    an exponent (+/-499). REAL objects take 21 nibbles of storage, 10.5 bytes: 12 nibbles for
+@    the mantissa, 3 for the exponent, 1 for the sign, and a prolog of 5 nibbles. They
+@    fit in 64bits (8 bytes) without the prolog.
+@       ZINTs, Binary Integers and REAL variables can all fit n=304500 comfortably.
+@    See:
+@       "HP 48SX Internals Derek S. Nickel - in html" http://www.rhoads.nu/bjorn/hp48/internals.html
+@       "HP 48SX Internals Derek S. Nickel - in TXT" http://www.guzu.net/hp48/docs/48intern.txt
+@       "Saturn Assembly Intro - Book" http://www.keesvandersanden.nl/calculators/downloads/Saturn_tutorial.pdf
+@
+@   -Luckily, comments don't slow down the interpreter, since they are stripped out when converting
+@    to a program object. In Commodore BASIC and ZX Spectrum BASIC, the REM comments
+@    do slow down the program when they are inside the inner loop.
+@
+@   -Actually, there is no interpreter for RPL. After tokenization, the instructions are just a
+@    series of pointers to commands and each command loads the next command after it finishes.
+@    The commands are implemented in assembly or System RPL. It is a "compiled" (tokenized) language.
+@
+@   -Unfortunately, comments end when a second AT sign is found in the same line. That means
+@    that one cannot comment out code that includes previous comments since the
+@    second AT sign will cancel the first one.
+@
+@   -"FOR" loops always execute the block at least once. As if the exit condition is checked
+@    at the evaluation of the "NEXT" statement.
+@
+@   -The operators "AND" and "OR" don't perform "lazy evaluation" obviously, since they operate
+@    on operands present and already evaluated on the stack. They don't "short circuit".
+@
+@   -HP50g's User RPL doesn't support breaking early out of loops (break, EXIT FOR, GOTO, etc.)
+@    But there exists a technique of ending the loop with "DOERR" and catching the
+@    error with an encompassing "IFERR".
+@       Another way to end a "FOR" loop early is to assign the loop counter variable with the
+@    value of the ending limit of the range.
+@       I made the algorithms in this file have the same number of evaluations of modulus (MOD)
+@    operations for a given "n" as for all the other languages. Either using IFERR/DOERR or a boolean
+@    variable to exit the inner loop, or forcing the loop variable to the ending limit of the range.
+@
+@   -"FOR" loops counter variables disappear outside of the loop. They are local to the block
+@    inside the "FOR.
+@
+@   -"FOR" loops can now be made to iterate over BASE numbers (integers) in the HP50g. This:
+@            << #1d #10d FOR I I NEXT >>
+@    now works. In the old HP48GX it didn't work, and failed with "Bad Argument Type".
+@    But the the "MOD" operation still doesn't work for BASE integers. Despite these limitations, I tried
+@    looping over BASE variables using WHILE's and 'i != j * (i/j)' as replacement of the division test.
+@    The result was much slower than using REAL values.
+@
+@   -There are different ways to modularize the program into functions. The one I'm using here is to
+@    store a program object in a variable ('findPrimes') and then call it with EVAL.
+@    Another way would be to have the program split into different programs (stored in different
+@    directory variables) and have one execute the other.
+@
+@   -The clock value returned by the TICKS operation is surprisingly good for a calculator.
+@    The resolution is 8192 ticks per second (122us or 0.122ms). TICKS returns a 64 bit
+@    binary integer that represents the number of ticks since 0000-01-01 (year 0). It won't
+@    wraparound at midnight as other more simple clocks do like in QuickBasic for MSDOS or
+@    in Commodore 64 BASIC.
+@    There are bits to spare and there is no risk of it wrapping to zero for 71 millon years.
+@
+@   -Of course, the following limitations were expected: no main exit codes, no STDERR, no
+@    proper formatting of floats as strings, no cmd line arguments except for the stack,
+@    no program name (ie: no argv[0]), no program banner.
+@
+@   -I found that the number of objects in the stack affects the speed of RPL programs (both
+@    UserRPL and SystemRPL programs).
+@    When measuring the speed of the program, I always clear the stack except for the argument.
+@
+@   -The SysRPL version is 5.9x faster than the UserRPL version (see "benchmark.hp50.s")
+@
+@   -The C version is 4934x faster than the User RPL version. It's not that User RPL is slow,
+@    it's actually because the C version is compiled to ARM code that skips the Saturn emulation
+@    layer (see "benchmark.hp50.c").
+@
+@Tips:
+@
+@   -Garbage collection sometimes freezes the calculator for a moment. It can add to the runtime
+@    of a program. To force garbage collection to occur, run the "MEM" command (it also returns
+@    the available memory).
+@
+@Useful links:
+@
+@       "Programming in User RPL Tutorial - by Kalinowski"
+@       http://documents.epfl.ch/users/f/fr/froulet/www/HP/RPL/
+@       https://www.hpcalc.org/details/1771
+@
+@       "HP 50g Series User's Guide"
+@       https://www.hpcalc.org/details/6512
+@       https://support.hp.com/us-en/product/hp-50g-graphing-calculator/3235173/manuals
+@
+@       "Calculator Benchmark by Xerxes"
+@       http://www.hpmuseum.org/cgi-sys/cgiwrap/hpmuseum/articles.cgi?read=700
+@
+@       "User RPL speed"
+@       http://www.hpmuseum.org/cgi-sys/cgiwrap/hpmuseum/archv017.cgi?read=115787
+@
+@       "Calculator Benchmark 48GX/hp48xgcc and 50g/HPGCC3 results"
+@       http://www.hpmuseum.org/cgi-sys/cgiwrap/hpmuseum/archv018.cgi?read=132174
+@
+@
+@
+@Usage banner (doesn't fit in the calculator screen):
+@
+@       Quick and dirty single thread CPU benchmark - by JMC
+@       Usage:
+@               Pass an argument up to which prime numbers will be searched with
+@               an inefficient algorithm, useful to compare the single thread performance
+@               of the CPU
+@       Example:
+@               n=304
+@       Notes:
+@               Searching up to 304500 takes almost exactly 10 seconds (9.7s) on an Intel i7 4770K @ 3.5GHz
+@               with benchmark.c compiled without optimizations using GCC, and 8.85s with -O3.
+@               HP50g UserRPL: it takes an estimated 19430360s (224d 21h 19m) for n=304500
+@                              For n=30 it takes 1.558s
+@                              For n=304 it takes 52.645s
+@                              For n=3045 it takes 3151.104s (53m)
+@               Emu48+ in Authentic Speed UserRPL: it takes an estimated 15709134s (181d 19h 39m) for n=304500
+@                                                  For n=30 it takes 1.494s
+@                                                  For n=304 it takes 44.936s
+@                                                  For n=3045 it takes 2547.617s (42m)
+@
+
+
+@Best routine in the file. The one used for measurements. Uses two FORs with DOERR exit of the inner FOR.
+@
+@       Real HP50g: Execution time is 1.558s for n=30 and 52.645s for n=304 and 3151.104s (53m) for n=3045.
+@
+@       Emu48+: Execution time is 1.487s for n=30 and 44.936s for n=304 and 2547.617s (42m) for n=3045.
+@
+
+%%HP: T(3)A(R)F(.);
+\<<
+    IF DEPTH 0. == THEN
+        "Benchmark for HP50g by JMC" DOERR
+    END
+
+
+    @NAIVE implementation. horribly O(n^2), and WITHOUT using sqrt optimization (on purpose so
+    @that it takes longer and is easier to benchmark. The 'sysbench' utility, uses the optimization
+    @but puts the function in a loop and counts 10000 calls).
+    @Returns how many prime numbers exist between 2 and n:
+
+    @findPrimes(n):
+    \<<
+        @Initial count 0:
+        0. SWAP
+        @For each number up to 'n' :
+        2. SWAP FOR i
+            IFERR
+                @This IF is necessary because RPL's "FOR" always performs at
+                @least one iteration (it checks the exit condition at NEXT):
+                IF i 2. \=/
+                THEN
+                    2. i 1. - FOR j   @NOT using the sqrt optimization (for easier benchmarking).
+                        @If i divisible by j, it wasn't a prime number:
+                        IF i j MOD NOT
+                        THEN
+                            @Jump to "THEN" clause of "IFERR"
+                            "" DOERR
+                        END
+                    NEXT
+                END
+            THEN
+            ELSE
+                @The previous loop ended without divisors found. It is a prime number.
+                @Increment prime count present in the stack:
+                1. +
+            END
+        NEXT
+    \>>
+
+
+    @main:
+    0. 0. \-> n findPrimes startTime count
+    \<<
+        @Can't combine these two IF since "OR" is not lazily evaluated:
+        IF
+            n TYPE 0. \=/       @Real type: 0
+            n TYPE 28. \=/      @ZINT type: 28
+            AND
+        THEN  @Is n numeric?
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        IF n 2. < THEN
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        n I\->R 'n' STO  @If the user supplied an Integer, convert it to REAL.
+
+        TICKS 'startTime' STO
+
+        n findPrimes EVAL 'count' STO
+
+        @Get endTime and subtract startTime TICKS:
+        TICKS startTime -
+        @Convert ticks to Real number and scale to seconds:
+        B\->R 8192. /
+        @Round to 3 decimals and tag:
+        3. RND "Elapsed" \->TAG
+
+        @Count of primes found up to n:
+        count
+    \>>
+\>>
+
+@-- CUT HERE -- --------------------------------------------------------------
+
+
+@Next is a simplified implementation without subroutines or local variables or comments,
+@which is easier for typing on an actual calculator when there is no link cable available.
+@       Real HP50g: Execution time is 1.549s for n=30 and 52.447s for n=304.
+@       Emu48+ (Authentic Speed mode): Execution time is 1.477s for n=30 and 44.944s for n=304.
+@
+@It is still the same horribly slow O(n^2) algorithm as usual. To make it a bit faster
+@for actual use in the calculator, use the SQRT(i) loop limit by changing this line:
+@                2 i 1 - FOR j
+@to:
+@                2 i \v/ FOR j
+@That would make it O(n * sqrt(n)).
+@But remember that the point of these benchmarks is the comparison of performance
+@of raw iteration among different languages by using always the same horrible algorithm.
+@And also, how to do the same basic programming tasks across all of them (measuring time,
+@looping, calling functions, printing errors, etc.). Nothing else.
+
+%%HP: T(3)A(R)F(.);
+\<<
+    I\->R
+    TICKS SWAP
+
+    0. SWAP
+    2. SWAP FOR i
+        IFERR
+            IF i 2. \=/
+            THEN
+                2. i 1. - FOR j
+                    IF i j MOD NOT
+                    THEN
+                        "" DOERR
+                    END
+                NEXT
+            END
+        THEN
+        ELSE
+            1. +
+        END
+    NEXT
+
+    SWAP TICKS SWAP - B\->R 8192. / 3. RND "Elapsed" \->TAG
+    SWAP
+\>>
+
+@-- CUT HERE -- --------------------------------------------------------------
+
+
+@Routine ending the inner FOR loop by forcing the loop counter. It is faster
+@for smaller n's but it is slower for bigger n's than the one at the top of the file:
+@   Emu48+: Execution time is 0.836s for n=30 and 36.184s for n=304 and 2525.837s (42m) for n=3045.
+
+%%HP: T(3)A(R)F(.);
+\<<
+    IF DEPTH 0. == THEN
+        "Benchmark for HP50g by JMC" DOERR
+    END
+
+
+    @NAIVE implementation. horribly O(n^2), and WITHOUT using sqrt optimization (on purpose so
+    @that it takes longer and is easier to benchmark. The 'sysbench' utility, uses the optimization
+    @but puts the function in a loop and counts 10000 calls).
+    @Returns how many prime numbers exist between 2 and n:
+
+    @findPrimes:
+    \<<
+        @Initial count 0:
+        0. SWAP
+        @For each number up to 'n' :
+        2. SWAP FOR i
+            @Push noDivisorsFound flag to the stack as true:
+            1.
+            @This IF is necessary because RPL's "FOR" always performs at
+            @least one iteration (it checks the exit condition at NEXT):
+            IF i 2. \=/
+            THEN
+                2. i 1. - FOR j   @NOT using the sqrt optimization (for easier benchmarking).
+                    @If i divisible by j, it wasn't a prime number:
+                    IF i j MOD NOT
+                    THEN
+                        @Force the loop to end
+                        i 1. - 'j' STO
+                        @Toggle the noDivisorsFound flag that is in the stack:
+                        NOT
+                    END
+                NEXT
+            END
+            @Test noDivisorsFound flag. The "IF" pops it from the stack:
+            IF THEN
+                @The previous loop ended without divisors found. It is a prime number.
+                @Increment prime count present in the stack:
+                1. +
+            END
+        NEXT
+    \>>
+
+
+    @main:
+    0. 0. \-> n findPrimes startTime count
+    \<<
+        @Can't combine these two IF since "OR" is not lazily evaluated:
+        IF
+            n TYPE 0. \=/       @Real type: 0
+            n TYPE 28. \=/      @ZINT type: 28
+            AND
+        THEN  @Is n numeric?
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        IF n 2. < THEN
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        n I\->R 'n' STO  @If the user supplied an Integer, convert it to REAL.
+
+        TICKS 'startTime' STO
+
+        n findPrimes EVAL 'count' STO
+
+        @Get endTime and subtract startTime TICKS:
+        TICKS startTime -
+        @Convert ticks to Real number and scale to seconds:
+        B\->R 8192. /
+        @Round to 3 decimals and tag:
+        3. RND "Elapsed" \->TAG
+
+        @Count of primes found up to n:
+        count
+    \>>
+\>>
+
+@-- CUT HERE -- --------------------------------------------------------------
+
+
+@Routine with FOR and WHILE and not using a subroutine. Slower than using two FORs. It takes 2.073s for n=30 and 107.014s for n=304. (Emu48+)
+
+%%HP: T(3)A(R)F(.);
+\<<
+    IF DEPTH 0. == THEN
+        "Benchmark for HP50g by JMC" DOERR
+    END
+
+    0. 0. 0. 0. \-> n startTime j count noDiv
+    \<<
+        @Can't combine these two IF since "OR" is not lazily evaluated:
+        IF
+            n TYPE 0. \=/       @Real type: 0
+            n TYPE 28. \=/      @ZINT type: 28
+            AND
+        THEN  @Is n numeric?
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        IF n 2. < THEN
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        n I\->R 'n' STO  @If the user supplied an Integer, convert it to REAL.
+
+        TICKS 'startTime' STO
+
+        2. n FOR i
+            1. 'noDiv' STO
+            2. 'j' STO
+            WHILE
+                j i \=/
+                noDiv
+                AND
+            REPEAT
+                IF i j MOD NOT THEN
+                    0. 'noDiv' STO
+                END
+                j 1. + 'j' STO
+            END
+            IF i j == THEN
+                count 1. + 'count' STO
+            END
+        NEXT
+
+
+        @Get endTime and subtract startTime TICKS:
+        TICKS startTime -
+
+        @Convert ticks to Real number and scale to seconds:
+        B\->R 8192. /
+
+        @Round to 3 decimals and tag:
+        3. RND "Elapsed" \->TAG
+
+        @Count of primes found <= n:
+        count
+    \>>
+\>>
+
+@-- CUT HERE -- --------------------------------------------------------------
+
+
+@Routine using two WHILEs and not using a subroutine. Slower than using two FORs. It takes 1.641s for n=30 and 84.031s for n=304. (Emu48+)
+
+%%HP: T(3)A(R)F(.);
+\<<
+    IF DEPTH 0. == THEN
+        "Benchmark for HP50g by JMC" DOERR
+    END
+
+    0. 0. 0. 0. \-> n startTime i j count
+    \<<
+        @Can't combine these two IF since "OR" is not lazily evaluated:
+        IF
+            n TYPE 0. \=/       @Real type: 0
+            n TYPE 28. \=/      @ZINT type: 28
+            AND
+        THEN  @Is n numeric?
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        IF n 2. < THEN
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        n I\->R 'n' STO  @If the user supplied an Integer, convert it to REAL.
+
+        TICKS 'startTime' STO
+
+        2. 'i' STO
+        WHILE i n \<=
+        REPEAT
+            2. 'j' STO
+            WHILE
+                j i \=/
+                i j MOD
+                AND
+            REPEAT
+                j 1. + 'j' STO
+            END
+            IF i j == THEN
+                count 1. + 'count' STO
+            END
+            i 1. + 'i' STO
+        END
+
+        @Get endTime and subtract startTime TICKS:
+        TICKS startTime -
+
+        @Convert ticks to Real number and scale to seconds:
+        B\->R 8192. /
+
+        @Round to 3 decimals and tag:
+        3. RND "Elapsed" \->TAG
+
+        @Count of primes found <= n:
+        count
+    \>>
+\>>
+
+@-- CUT HERE -- --------------------------------------------------------------
+
+
+@Routine using Base Integers (HXS INTs). Slower than using Reals. It takes 2.285s for n=30 and 92.255s for n=304. (Emu48+)
+@NOTE: The MOD operation fails with Bad Argument Type error for HXS ints, so I use integer division and multiplication test here.
+
+%%HP: T(3)A(R)F(.);
+\<<
+    I\->R
+    R\->B
+    TICKS SWAP
+
+    0. SWAP
+    #2h SWAP FOR i
+        IFERR
+            IF i #2h \=/
+            THEN
+                #2h i #1h - FOR j
+                    IF i j / j * i ==
+                    THEN
+                        "" DOERR
+                    END
+                NEXT
+            END
+        THEN
+        ELSE
+            1. +
+        END
+    NEXT
+
+    SWAP TICKS SWAP - B\->R 8192. / 3. RND "Elapsed" \->TAG
+    SWAP
+\>>
+
+@-- CUT HERE -- --------------------------------------------------------------
+
+
+@Routine using Big Integers (ZINTs). Slower than using Reals. It takes 6.973s for n=30 and 329.923s for n=304. (Emu48+)
+@NOTE: Must be transferred and run in EXACT mode.
+
+%%HP: T(3)A(R)F(.);
+\<<
+    R\->I
+    TICKS SWAP
+
+    0 SWAP
+    2 SWAP FOR i
+        IFERR
+            IF i 2 \=/
+            THEN
+                2 i 1 - FOR j
+                    @IF i j / \->NUM IP R\->I j * i ==
+                    IF i j MOD NOT
+                    THEN
+                        "" DOERR
+                    END
+                NEXT
+            END
+        THEN
+        ELSE
+            1 +
+        END
+    NEXT
+
+    SWAP TICKS SWAP - B\->R 8192. / 3. RND "Elapsed" \->TAG
+    SWAP
+    I\->R
+\>>
+
+@-- CUT HERE -- --------------------------------------------------------------
+
