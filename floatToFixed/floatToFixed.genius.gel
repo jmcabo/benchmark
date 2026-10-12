@@ -1,0 +1,336 @@
+#!/bin/sh
+# vim: set filetype=conf:
+#
+#floatToFixed testing file in Genius Extension Language for the Genius calculator - by JMC
+
+
+#Put calculator code inside GENIUS_CODE shell variable:
+GENIUS_CODE=$(cat <<_EOF_
+
+
+    #Format a float to string as fixed point with the specified number of decimals - by JMC
+    #
+    #This is like calling in C:
+    #    sprintf(destStr, "%.3f", x)
+    #for floatToFixed(x, 3)
+    #
+    #Examples:
+    #    floatToFixed(1.234, 0)      -->  "1"
+    #    floatToFixed(1.234, 2)      -->  "1.23"
+    #    floatToFixed(-1.995, 2)     -->  "-2.00"
+    #    floatToFixed(5, 3)          -->  "5.000"
+    #    floatToFixed(-0.002, 2)     -->  "-0.00"
+    #    floatToFixed(1e30, 2)       -->  "1000000000000000000000000000000.00"
+    #                                     (No weird approximation errors with this algorithm.)
+    #
+    #Good algorithms for conversion of floats to string are found in:
+    #    "How to Print Floating-Point Numbers Accurately" - 1990 - Guy Steele and Jon White.
+    #but those might require an arbitrary precision integer library.
+    #There is also a famous, a very long, self contained, C implementation based on that paper in:
+    #    "dtoa.c" - http://www.netlib.org/fp/index.html
+    #dtoa.c uses its own implementation of arbitrary precision integers, all contained in a single file.
+    #Similar algorithms are already used by the language when returning a float in string form (just not
+    #with a specific fixed number of decimals).
+    #
+    #  The algorithm below prints the number to string, and parses the exponent (if the number was big or
+    #small enough to be returned with exponential notation with number->string). It applies the exponent and
+    #then it adds or removes fractional digits to complete the number of requested decimals (by filling
+    #with 0s or truncating and rounding).
+    #  This approach is more precise than the approach of trying to extract the digits one by one by
+    #shifting and truncating: Since there is no access to the binary representation of the float, and
+    #since these floats are base-2, small errors would be accumulated when multiplying by 10 and
+    #subtracting the integer part to shift and extract the fractional digits.
+    #  So it is better to rely on the algorithm inside (number->string) for converting to base-10 digits first,
+    #like the present algorithm does.
+    #
+    function floatToFixed(x, decimalPlaces) = (
+        local E_CHAR, SPC_CHAR, SLASH_CHAR, DOT_CHAR, MINUS_CHAR, ZERO_CHAR, ONE_CHAR, FIVE_CHAR, NINE_CHAR,
+              str, f, exponent, expPos, oldMaxDigits, oldFloatPrecision, isNegative, integerDigits,
+              fractionalDigits, pointPos, firstDigitLeftOff, pos, carry, newChar;
+
+        SPC_CHAR = 0x20;    # " "
+        SLASH_CHAR = 0x2f;  # "/"
+        E_CHAR = 0x65;      # "e"
+        DOT_CHAR = 0x2e;    # "."
+        MINUS_CHAR = 0x2d;  # "-"
+        ZERO_CHAR = 0x30;   # "0"
+        ONE_CHAR = 0x31;    # "1"
+        FIVE_CHAR = 0x35;   # "5"
+        NINE_CHAR = 0x39;   # "9"
+
+        #Sub-function to create a vector of length 'count' filled with 'value' values:
+        function repeat(count, value) = (
+            local V, i;
+            V = null;
+            for i = 1 to count do (
+                V@(i) = value;
+            );
+            return V;
+        );
+
+        #Sub-function that returns the first position of a char ascii value in a vector, or -1 if not found:
+        function charIndexOf(vector, ch) = (
+            local i;
+            #Vectors are 1-based:
+            for i = 1 to columns(vector) do (
+                if vector@(i) == ch then (
+                    return i;
+                )
+            );
+            return -1;
+        );
+
+        decimalPlaces = max(0, floor(decimalPlaces));
+
+        #Set max precision and digits before converting to string:
+        oldMaxDigits = MaxDigits;
+        oldFloatPrecision = FloatPrecision;
+        MaxDigits = 0;  #Show all integer and fractional digits.
+        FloatPrecision = 16384;  #Maximum float precision for converting to string.
+
+        #Convert to string (actually, to a vector of ascii values. Strings are read only and not that useful):
+        str = StringToASCII("" + x);
+
+        #Turn "3/4" into "0.75", and "1 3/4" into "1.75" and reconvert to string:
+        if charIndexOf(str, SLASH_CHAR) != -1 or charIndexOf(str, SPC_CHAR) != -1 then (
+            str = StringToASCII("" + float(x));
+        );
+
+        #Restore precision and max digits after having converted to string:
+        FloatPrecision = oldFloatPrecision;
+        MaxDigits = oldMaxDigits;
+
+        #Parse exponent:
+        f = str;
+        exponent = 0;
+        expPos = charIndexOf(str, E_CHAR);
+        if expPos != -1 then (
+            f = str@(1 : expPos - 1);
+            exponent = str@(expPos + 1 : columns(str));
+            exponent = Parse(ASCIIToString(exponent));  #Convert to number
+        );
+
+        #Get negative sign and remove it:
+        isNegative = false;
+        if f@(1) == MINUS_CHAR then (
+            f = f@(2 : columns(f));
+            isNegative = true;
+        );
+
+        #Get decimal point position and remove it:
+        integerDigits = columns(f);
+        fractionalDigits = 0;
+        pointPos = charIndexOf(f, DOT_CHAR);
+        if pointPos != -1 then (
+            integerDigits = pointPos - 1;
+            f = [f@(1 : pointPos - 1), f@(pointPos + 1 : columns(f))];
+            fractionalDigits = columns(f) - integerDigits;
+        );
+
+        #Shift according to exponent:
+        fractionalDigits = fractionalDigits - exponent;
+        integerDigits = integerDigits + exponent;
+        if exponent < 0 and integerDigits < 1 then (
+            f = [repeat(1 - integerDigits, ZERO_CHAR), f];
+            integerDigits = 1;
+        ) else (
+            if exponent > 0 and fractionalDigits < 0 then (
+                f = [f, repeat(-fractionalDigits, ZERO_CHAR)];
+                fractionalDigits = 0;
+            );
+        );
+
+        #Add 0's up to decimalPlaces if we have less than asked for:
+        if fractionalDigits < decimalPlaces then (
+            f = [f, repeat(decimalPlaces - fractionalDigits, ZERO_CHAR)];
+            fractionalDigits = decimalPlaces;
+        );
+
+        ##Remove digits if we have more than asked for:
+        if fractionalDigits > decimalPlaces then (
+            firstDigitLeftOff = f@(integerDigits + decimalPlaces + 1);
+            f = f@(1 : integerDigits + decimalPlaces);
+            fractionalDigits = decimalPlaces;
+
+            #Propagate rounding if the first digit left off is greater than or equal to "5":
+            if firstDigitLeftOff >= FIVE_CHAR then (
+                carry = true;
+                pos = columns(f);
+                while carry and pos >= 1 do (
+                    newChar = f@(pos) + 1;
+                    if newChar > NINE_CHAR then (
+                        newChar = ZERO_CHAR;
+                    ) else (
+                        carry = false;
+                    );
+                    f@(pos) = newChar;
+                    pos = pos - 1;
+                );
+                if carry and pos == 0 then (
+                    f = [ONE_CHAR, f];
+                    integerDigits = integerDigits + 1;
+                );
+            );
+        );
+
+        #Add decimal point:
+        if decimalPlaces > 0 then (
+            f = [f@(1 : integerDigits), DOT_CHAR, f@(integerDigits + 1 : columns(f))];
+        );
+
+        #Add negative sign:
+        if isNegative then (
+            f = [MINUS_CHAR, f];
+        );
+
+        return ASCIIToString(f);
+    );
+
+
+    #Add spaces up to width to right-justify a string. If the string
+    #is already bigger than width, then return it unchanged.
+    function padLeft(str, width) = (
+        local V, spaceCount, spaces;
+
+        #Convert to vector to get length of string:
+        V = StringToASCII(str);
+        spaceCount = width - columns(V);
+        spaces = "";
+        for i = 1 to spaceCount do (
+            spaces = spaces + " ";
+        );
+
+        return spaces + str;
+    );
+
+
+    #Add spaces up to width to left-justify a string. If the string
+    #is already bigger than width, then return it unchanged.
+    function padRight(str, width) = (
+        local V, spaceCount, spaces;
+
+        #Convert to vector to get length of string:
+        V = StringToASCII(str);
+        spaceCount = width - columns(V);
+        spaces = "";
+        for i = 1 to spaceCount do (
+            spaces = spaces + " ";
+        );
+
+        return str + spaces;
+    );
+
+
+    #DEPRECATED:
+    #Convert a float to string with a fixed number of 'decimals' and using left space padding up to 'width'.
+    #If it has less numbers of decimals than specified, they are filled with zeros.
+    #This is equivalent to C's:
+    #    sprintf(destStr, "%6.3f", n)
+    #for width=6 and decimals=3.
+    #Note: 'decimals' should be less than 256 because of a limitation with MaxDigits in the Genius calculator.
+    #      If the number 'f' has more than 256 digits, it will fail and the number will be returned with exponential notation.
+    #Note: FloatPrecision bits affects the validity of least significant digits. If it is not enough they will contain inaccurate digits.
+    #BUGS:
+    #    formatFloat(1e30, 0, 0)    -->  1e30        (should be "1000000000000000000000000000000")
+    #    formatFloat(1.2e-7, 0, 8)  -->  1.2e-70000  (should be "0.00000012")
+    #    formatFloat(0.9, 0, 0)     -->  1.0         (should be "1")
+    #
+    function formatFloat(f, width, decimals) = (
+        local oldMaxDigits, significantDigitsCount, str, V, dotPos, decimalsToFill;
+
+        #Convert to string with decimal digits up to 'decimals' rounding and discarding extra decimals:
+
+        #Discard extra decimals by rounding:
+        decimals = max(0, floor(decimals));
+        f = round(f * 10^decimals);
+        #Adjust MaxDigits if necessary:
+        oldMaxDigits = MaxDigits;
+        significantDigitsCount = 0;
+        if f != 0 then (
+            significantDigitsCount = ceil(log10(abs(f)));
+        );
+        if significantDigitsCount > 256 then (
+            #Fail because Genius doesn't have enough display precision. The number will be returned
+            #with exponential notation:
+            #Convert to string:
+            f = float(f) / 10^decimals;
+            str = f + "";
+            return str;
+        );
+        #Request more display precision before converting to string:
+        MaxDigits = significantDigitsCount;
+        #Convert to string:
+        f = float(f) / 10^decimals;
+        str = f + "";
+        #Restore display precision:
+        MaxDigits = oldMaxDigits;
+
+        #For decimals=3, if f=1.2345 then str contains "1.234".
+        #For decimals=3, if f=1.2 then str contains "1.2".
+
+        #Right-fill with zeros up to 'decimals':
+        #First count the number of decimals already in the string, by locating the dot.
+        #Floating point values always have the dot when MaxDigits is enough for fixed notation.
+        V = StringToASCII(str);
+        dotPos = -1;
+        for i = 1 to columns(V) do (
+            if V@(i) == 0x2e then (
+                dotPos = i;
+                break;
+            );
+        );
+        #If it doesn't have a dot then it is in exponential notation (MaxDigits not enough, formatFloat failed).
+        if dotPos != -1 then (
+            decimalsToFill = decimals - (columns(V) - dotPos);
+            for i = 1 to decimalsToFill do (
+                str = str + "0";
+            );
+        );
+
+        return padLeft(str, width);
+    );
+
+
+    function testFloatToFixed(x, decimalPlaces) = (
+        local msg;
+        msg = padRight(x + " " + decimalPlaces, 12);
+        msg = msg + "  -->  " + floatToFixed(x, decimalPlaces);
+        #msg = msg + "  -->  " + formatFloat(x, 0, decimalPlaces);
+        print(msg);
+    );
+
+
+    function main(args) = (
+        testFloatToFixed(1.2, 3.6);
+        testFloatToFixed(1.2, 3);
+        testFloatToFixed(0.2, 3);
+        testFloatToFixed(1.2e-7, 3);
+        testFloatToFixed(1.2e-7, 8);
+        testFloatToFixed(1.2e5, 3);
+        testFloatToFixed(123, 3);
+        testFloatToFixed(-0.2, 3);
+        testFloatToFixed(-0.002, 2);
+        testFloatToFixed(9.999, 2);
+        #No NaNs in Genius: testFloatToFixed(NaN, 2);
+        testFloatToFixed(12.0002, 20);
+        testFloatToFixed(1e30, 0);
+        testFloatToFixed(12.099, 2);
+        testFloatToFixed(-1.996, 2);
+        testFloatToFixed(0.9, 0);
+        testFloatToFixed(3/4, 3);
+    );
+
+    #Set variable 'args' with the arguments from the command line from BASH:
+    args = "$@";
+
+    #Call main:
+    main(args);
+
+_EOF_
+) #End of code
+
+
+#Execute code in genius:
+echo "$GENIUS_CODE" | genius
+exit $?
+

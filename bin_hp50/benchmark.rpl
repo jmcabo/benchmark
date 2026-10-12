@@ -1,0 +1,73 @@
+%%HP: T(3)A(R)F(.);
+\<<
+    IF DEPTH 0. == THEN
+        "Benchmark for HP50g by JMC" DOERR
+    END
+
+
+    @NAIVE implementation. horribly O(n^2), and WITHOUT using sqrt optimization (on purpose so
+    @that it takes longer and is easier to benchmark. The 'sysbench' utility, uses the optimization
+    @but puts the function in a loop and counts 10000 calls).
+    @Returns how many prime numbers exist between 2 and n:
+
+    @findPrimes(n):
+    \<<
+        @Initial count 0:
+        0. SWAP
+        @For each number up to 'n' :
+        2. SWAP FOR i
+            IFERR
+                @This IF is necessary because RPL's "FOR" always performs at
+                @least one iteration (it checks the exit condition at NEXT):
+                IF i 2. \=/
+                THEN
+                    2. i 1. - FOR j   @NOT using the sqrt optimization (for easier benchmarking).
+                        @If i divisible by j, it wasn't a prime number:
+                        IF i j MOD NOT
+                        THEN
+                            @Jump to "THEN" clause of "IFERR"
+                            "" DOERR
+                        END
+                    NEXT
+                END
+            THEN
+            ELSE
+                @The previous loop ended without divisors found. It is a prime number.
+                @Increment prime count present in the stack:
+                1. +
+            END
+        NEXT
+    \>>
+
+
+    @main:
+    0. 0. \-> n findPrimes startTime count
+    \<<
+        @Can't combine these two IF since "OR" is not lazily evaluated:
+        IF
+            n TYPE 0. \=/       @Real type: 0
+            n TYPE 28. \=/      @ZINT type: 28
+            AND
+        THEN  @Is n numeric?
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        IF n 2. < THEN
+            n "ERROR:" 10. CHR "Argument not valid" + + DOERR
+        END
+        n I\->R 'n' STO  @If the user supplied an Integer, convert it to REAL.
+
+        TICKS 'startTime' STO
+
+        n findPrimes EVAL 'count' STO
+
+        @Get endTime and subtract startTime TICKS:
+        TICKS startTime -
+        @Convert ticks to Real number and scale to seconds:
+        B\->R 8192. /
+        @Round to 3 decimals and tag:
+        3. RND "Elapsed" \->TAG
+
+        @Count of primes found up to n:
+        count
+    \>>
+\>>

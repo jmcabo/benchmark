@@ -1,0 +1,10 @@
+%%HP: T(3)A(R)F(.);
+\<<
+    I\->R    @Convert to REAL if argument was ZINT.
+    TICKS SWAP
+
+    CBENCHMARK
+
+    SWAP TICKS SWAP - B\->R 8192. / 3. RND "Elapsed" \->TAG
+    SWAP
+\>>

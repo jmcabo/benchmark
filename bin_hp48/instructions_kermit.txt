@@ -1,0 +1,143 @@
+Transferring files to the HP48GX through KERMIT in Linux
+========================================================
+
+0) Watch this very useful video in which some files are transferred through kermit in linux to an HP48GX:
+
+        "Loading Chip8 emulator and ROMS onto HP 48G or 48GX calculator"
+        https://www.youtube.com/watch?v=KvU92qStatw
+
+In the description it says:
+
+        This video shows how to configure and use kermit to transfer files onto your
+        calculator, and then how to run them. Some websites you can refer to get files:
+                https://github.com/Chromatophore/HP48...
+                https://www.hpcalc.org/hp48/games/chip/
+                http://www.pong-story.com/chip8/
+                https://github.com/JohnEarnest/Octo
+                https://github.com/mwales/chip8
+        To install kermit on Ubuntu
+                sudo apt-get install ckermit
+        Commands for configuring kermit:
+                set line /dev/ttyUSB0
+                set speed 9600
+                set parity none
+                set file type ascii
+                set carrier-watch off
+                set modem type direct
+                set flow none
+                set block 2
+                set control prefix all
+At time 6:12 it configures kermit.
+At time 6:38 it sets up the calculator.
+Watch it in 1080p.
+
+1) Plug a RS232 <-> USB cable in linux. Mine shows this in /var/log/syslog when plugging it in:
+
+            Apr  2 11:00:35 lolita kernel: [ 9475.523527] usb 3-5: new full-speed USB device number 6 using xhci_hcd
+            Apr  2 11:00:35 lolita kernel: [ 9475.664009] usb 3-5: New USB device found, idVendor=067b, idProduct=2303
+            Apr  2 11:00:35 lolita kernel: [ 9475.664011] usb 3-5: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+            Apr  2 11:00:35 lolita kernel: [ 9475.664013] usb 3-5: Product: USB-Serial Controller
+            Apr  2 11:00:35 lolita kernel: [ 9475.664014] usb 3-5: Manufacturer: Prolific Technology Inc.
+            Apr  2 11:00:35 lolita mtp-probe: checking bus 3, device 6: "/sys/devices/pci0000:00/0000:00:14.0/usb3/3-5"
+            Apr  2 11:00:35 lolita mtp-probe: bus: 3, device: 6 was not an MTP device
+            Apr  2 11:00:35 lolita kernel: [ 9475.677153] usbcore: registered new interface driver usbserial
+            Apr  2 11:00:35 lolita kernel: [ 9475.677162] usbcore: registered new interface driver usbserial_generic
+            Apr  2 11:00:35 lolita kernel: [ 9475.677169] usbserial: USB Serial support registered for generic
+            Apr  2 11:00:35 lolita kernel: [ 9475.678377] usbcore: registered new interface driver pl2303
+            Apr  2 11:00:35 lolita kernel: [ 9475.678391] usbserial: USB Serial support registered for pl2303
+            Apr  2 11:00:35 lolita kernel: [ 9475.678407] pl2303 3-5:1.0: pl2303 converter detected
+            Apr  2 11:00:35 lolita kernel: [ 9475.678985] usb 3-5: pl2303 converter now attached to ttyUSB0
+
+Note the vendor "Prolific" and the PID VID of:
+
+            idVendor=067b, idProduct=2303
+
+2) Install ckermit:
+
+            sudo apt-get install ckermit
+
+3) Go to the desired directory and start kermit
+
+            cd /my/hp48/filesToUpload
+            kermit
+
+4) Enter the commands:
+
+            set line /dev/ttyUSB0
+            set speed 9600
+            set parity none
+            set file type ascii
+            set carrier-watch off
+            set modem type direct
+            set flow none
+            set block 2
+            set control prefix all
+
+5) Start the Sending of a file in the PC:
+
+            send myfile
+
+   it will start waiting for the calculator.
+
+6) In the calculator:
+
+            -Do LSHIFT+1 to go to I/O
+            -Select Transfer and setup these options (it will be remembered for next time):
+
+                PORT: Wire
+                TYPE: Kermit
+                Name: <empty>
+                FMT: Bin
+                XLAT: Newline (Ch 10)
+                CHK: 3
+                BAUD: 9600
+                PARITY: None
+                OVRW: <as desired>
+
+7) Hit RECV in the calculator in the transfer screen.
+
+   It will start receiving the file from KERMIT.
+   The received filenames are all in uppercase, they must be renamed as appropiate.
+
+Repeat send in PC and RECV in the calculator for each file.
+
+DONE!!
+
+
+How to Upload and run my HP48GX benchmarks:
+==========================================
+
+        benchmark.rpl:           The User RPL benchmark.
+        sbenchmark.sysrpl:       The System RPL benchmark.
+        cbenchmark:              The compiled C benchmark.
+
+The System RPL and User RPL benchmarks are easily uploaded and nothing else is required.
+For the benchmark in C, there are files that need to be in the same variable directory of
+the calculator for the benchmark to run.
+
+Please note that the C benchmark can't check its arguments properly so a real needs to
+be present in level 1 of the stack before running it. For example: 30.
+
+The C benchmark requires these files:
+
+        cbenchmark
+        GCCLDD
+        libcore.sl
+        libc.sl
+        libgcc.sl
+        libgraph.sl
+        libm.sl
+        timeeval
+
+The GCCLDD goes in uppercase and the lib*.sl files must go in lowercase with their original names.
+Since kermit transfers them in uppercase, that means that the libs must be re-STOred to
+new lowercase variables by hand.
+
+The "timeeval" is from HpCalc.org and is useful to measure the time of the C cbenchmark. It does
+an EVAL and gives the elapsed time in milliseconds and in ticks (divide the ticks by 8192 to get
+them in seconds). The RPL benchmarks measure the time by themselves.
+
+DONE!
+--
+
+

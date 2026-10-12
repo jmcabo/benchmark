@@ -1,0 +1,173 @@
+Transferring files to the HP50g through KERMIT in Linux
+=======================================================
+
+0) Useful links:
+
+        "How to connect linux to a HP calculator"
+        https://github.com/berserkerbernhard/hpcalculator-and-linux
+
+        "[50G] connecting to Linux PC"
+        http://www.hpmuseum.org/forum/thread-3645.html
+
+        "Loading Chip8 emulator and ROMS onto HP 48G or 48GX calculator"
+        https://www.youtube.com/watch?v=KvU92qStatw
+
+        "hp 49g+ communication with linux" - 2005-03-03
+        https://groups.google.com/d/topic/comp.sys.hp48/YRNmqQDAp_I/discussion
+
+
+1) Connect the calculator to USB while monitoring /var/log/syslog
+
+        tail -f /var/log/syslog
+
+   or perhaps
+
+        dmesg --follow
+
+   Look for the line:
+
+        Apr 11 09:21:49 lolita kernel: [ 3691.382962] usb 3-14: hp4x converter now attached to ttyUSB0
+
+   the complete output when connecting is this:
+
+        Apr 11 10:23:32 lolita kernel: [ 7394.788305] usb_serial_simple 3-14:1.0: device disconnected
+        Apr 11 10:24:44 lolita kernel: [ 7466.801077] usb 3-14: new full-speed USB device number 11 using xhci_hcd
+        Apr 11 10:24:44 lolita kernel: [ 7466.942237] usb 3-14: New USB device found, idVendor=03f0, idProduct=0121
+        Apr 11 10:24:44 lolita kernel: [ 7466.942242] usb 3-14: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+        Apr 11 10:24:44 lolita kernel: [ 7466.942246] usb 3-14: Product: HPx9G+ Device
+        Apr 11 10:24:44 lolita kernel: [ 7466.942249] usb 3-14: Manufacturer: HP Company
+        Apr 11 10:24:44 lolita kernel: [ 7466.942978] usb_serial_simple 3-14:1.0: hp4x converter detected
+        Apr 11 10:24:44 lolita kernel: [ 7466.943135] usb 3-14: hp4x converter now attached to ttyUSB0
+        Apr 11 10:24:44 lolita mtp-probe: checking bus 3, device 11: "/sys/devices/pci0000:00/0000:00:14.0/usb3/3-14"
+        Apr 11 10:24:44 lolita mtp-probe: bus: 3, device: 11 was not an MTP device
+
+   And the Vendor is "HP Company" and the PID VID are:
+
+            idVendor=03f0, idProduct=0121
+
+
+2) If ModemManager appears, wanting to take control of the ttyUSB0 device:
+
+        Apr 11 00:17:09 lolita ModemManager[904]: <warn>  (ttyUSB0): port attributes not fully set
+        Apr 11 00:17:54 lolita ModemManager[904]: <warn>  (ttyUSB0): close blocked by driver for more than 7 seconds!
+
+   then you need to add the following to the file
+
+        "/lib/udev/rules.d/77-mm-usb-serial-adapters-greylist.rules"
+
+   (BEFORE the last line):
+
+        # HP-49G+/50G device
+        ATTRS{idVendor}=="03f0", ATTRS{idProduct}=="0121", ENV{ID_MM_DEVICE_MANUAL_SCAN_ONLY}="1"
+
+
+3) At this point I tried the following several times and sometimes it works and sometimes it doesn't.
+   What I think works is to use first HPTalx before kermit. And use HPTalx with 115200 speed in File -> Settings.
+   Maybe the problem is the USB port not supplying clean 5.00Volts. I used a USB meter and it gave
+   around 4.8V varying and going as low as 4.5V and as high as 4.9V in a USB 2.0 port of the PC.
+   In a different port but USB 3.0, it was clean 5.00Volts.
+   To use HPTalx, do RSHIFT+RightArrow (holding RSHIFT) to put the calculator in Kermit server mode
+   before clicking in HPTalx on Connect.
+
+
+4) I/O Transfer calculator options:
+
+        Port: USB
+        Type: Kermit
+        Fmt:  Bin
+        Xlat: ->255
+        Chk: 3
+        OvrW: <as desired>
+
+
+5) Put the calculator in kermit server mode:
+
+        RSHIFT (hold) RightArrow
+
+   you need to hold RSHIFT otherwise it starts the XModem server mode.
+
+
+6) Install ckermit (sudo apt-get install ckermit)\,
+   and start "kermit" and issue the following commands:
+
+        set modem type direct
+        set prefixing all
+        set port /dev/ttyUSB0
+        set speed 9600
+        set carrier-watch off
+        set flow none
+        set parity none
+        set block 3
+
+   (they can be copy/pasted in kermit)
+
+
+7) In kermit try: rdir:
+
+        (/home/juanma/admin/scripts/benchmark/bin_hp50/) C-Kermit>rdir
+         Press the X or E key to cancel.
+        { HOME } 244167.5
+        BENCH 549. Directory 44487.
+        TMPDIR 17. Directory 24171.
+        IOPAR 37.5 List 19265.
+        PPAR 83. List 40924.
+        CST 86.5 List 10943.
+        CASDIR 128. Directory 15302.
+        (/home/juanma/admin/scripts/benchmark/bin_hp50/) C-Kermit>
+
+   Send files with:
+
+        send FILENAME
+
+   Change directory with:
+
+        remote host { DIRECTORY }
+
+   Close kermit server on the calculator with:
+
+        finish
+
+8) The time that it started working was after trying HpTalx 1.3.1a. HpTalx didn't work but afterwards, kermit did.
+
+-----------------
+
+
+How to Upload and run my HP48GX benchmarks:
+==========================================
+
+                            CALCULATOR CHECKSUM          DESCRIPTION
+        benchmark.rpl       # 49BAh (after ASCIIBIN.49)  The User RPL benchmark.
+        sbenchmark.sysrpl   # B096h                      The System RPL benchmark.
+        cbenchmark          # 4E97h                      The compiled C benchmark as a standalone executable.
+        cbench.hp           # CEDDh                      The compiled C benchmark.
+
+The System RPL and User RPL benchmarks are easily uploaded and nothing else is required.
+
+The C Benchmark as "cbenchmark" only requires clauncher.rpl.
+
+        cbenchmark               The compiled C benchmark as a standalone executable.
+        clauncher.rpl            A small RPL program that launches the C benchmark and measures the elapsed time.
+
+The C benchmark as "cbench.hp" requires these files:
+
+For the benchmark in C, the are files SETUP.BIN and clauncher.rpl are also needed.
+The file clauncher.rpl needs to be in the same directory as CBENCHMARK.
+
+        cbench.hp:               The compiled C benchmark.
+        clauncher.rpl:           A small RPL program that launches the C benchmark and measures the elapsed time.
+        SETUP.BIN                The ARMToolbox for running the C benchmark or producing CBENCHMARK.
+        timeeval:                Optional: A utility that can measure elapsed time of commands.
+
+Follow the instructions in benchmark.hp50.c to convert cbench.hp to a standalone executable
+using the ARMToolbox.
+
+
+The "timeeval" is from HpCalc.org, but I recompiled it for HP49 series.  It is useful to measure
+the time of other benchmarks. It does an EVAL and gives the elapsed time in milliseconds and in
+ticks (divide the ticks by 8192 to get them in seconds). The benchmarks here measure the time by themselves
+(or with the clauncher.rpl wrapper in the case of C).
+
+DONE!
+--
+
+
