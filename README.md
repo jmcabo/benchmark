@@ -153,18 +153,18 @@ Iterations: 3823899402 (3.8BN iterations)
 
 It shows how to do these things in each language:
 
--Create a standalone program.
--Shebang or instructions on how to compile in comments at the top.
--Comments.
--Read command line arguments (ARGV, etc.)
--Get the program name (ie: ARGV[0], $0, ENVIRON["_"], etc.)
--Convert a string to integer and validate it.
--Exit with a nonzero error code.
--Print to STDERR.
--Measure elapsed time in milliseconds.
--Function declaration syntax, calling, passing arguments and returning a value.
--Format a float with 3 decimals and space padding up to 6 chars.
--A couple of loops and arithmetic.
+        -Create a standalone program.
+        -Shebang or instructions on how to compile in comments at the top.
+        -Comments.
+        -Read command line arguments (ARGV, etc.)
+        -Get the program name (ie: ARGV[0], $0, ENVIRON["_"], etc.)
+        -Convert a string to integer and validate it.
+        -Exit with a nonzero error code.
+        -Print to STDERR.
+        -Measure elapsed time in milliseconds.
+        -Function declaration syntax, calling, passing arguments and returning a value.
+        -Format a float with 3 decimals and space padding up to 6 chars.
+        -A couple of loops and arithmetic.
 
 It turned into a sort of "code kata". Something to do for each new language,
 and to peruse when one forgets how to start coding a simple standalone program
@@ -173,23 +173,23 @@ in some language.
 Modulus computations by size of n:
 =============================
 
-n mod checks
--------------------
-304 8658
-3045 620138
-30450 47141833
-304500 3823899402
+                n mod checks
+                -------------------
+                304 8658
+                3045 620138
+                30450 47141833
+                304500 3823899402
 
 Use this factor to estimate the number of seconds it would take to run with n=304500 knowing
 how long it took to run with n=30450:
-t304500 ~= t30450 * 3823899402 / 47141833
+                t304500 ~= t30450 * 3823899402 / 47141833
 or just:
-t304500 ~= t30450 * 81.11478
+                t304500 ~= t30450 * 81.11478
 
 And to estimate from t3045:
 
-t304500 ~= t3045 * 3823899402 / 620138
-t304500 ~= t3045 * 6166.2072
+                t304500 ~= t3045 * 3823899402 / 620138
+                t304500 ~= t3045 * 6166.2072
 
 
 SOME STATS
