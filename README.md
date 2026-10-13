@@ -381,7 +381,11 @@ since it can balance better and squeeze the Execution Unit's time the most,
 especially since this benchmark is a very artificial workload and most
 real workloads will not be completely PURE CPU.
 
+
 --JMC
-Benchmark de 2014 a 2019,
-Artículo de 2026-10-13.
+
+Benchmark from 2014 to 2019,
+
+Article from 2026-10-13.
+
 Copyright (c) 2014, 2016, 2018, 2019, Juan Manuel Cabo. All Rights Reserved.
