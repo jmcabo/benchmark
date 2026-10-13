@@ -173,26 +173,26 @@ in some language.
 Modulus computations by size of n:
 =============================
 
-                n mod checks
-                -------------------
-                304 8658
-                3045 620138
-                30450 47141833
-                304500 3823899402
+        n mod checks
+        -------------------
+        304 8658
+        3045 620138
+        30450 47141833
+        304500 3823899402
 
 Use this factor to estimate the number of seconds it would take to run with n=304500 knowing
 how long it took to run with n=30450:
 
-                t304500 ~= t30450 * 3823899402 / 47141833
+        t304500 ~= t30450 * 3823899402 / 47141833
 
 or just:
 
-                t304500 ~= t30450 * 81.11478
+        t304500 ~= t30450 * 81.11478
 
 And to estimate from t3045:
 
-                t304500 ~= t3045 * 3823899402 / 620138
-                t304500 ~= t3045 * 6166.2072
+        t304500 ~= t3045 * 3823899402 / 620138
+        t304500 ~= t3045 * 6166.2072
 
 
 SOME STATS
@@ -203,7 +203,7 @@ Number of LANGUAGES, or actually, unique extensions: 44
 
 Unique extensions:
 
-                asm asp awk bas bash bat bc c calc cpp cs d fs gel go hs html java jl js lisp lua m ml pas php pl prg ps1 py R rb rkt rpl rs s scm sh sml swift tcl vb vbs vim
+        asm asp awk bas bash bat bc c calc cpp cs d fs gel go hs html java jl js lisp lua m ml pas php pl prg ps1 py R rb rkt rpl rs s scm sh sml swift tcl vb vbs vim
 
 Date in which each file was first committed to my local repo, which is different than the 2026 initial commit to the GITHUB server, which forgot the original dates:
 
